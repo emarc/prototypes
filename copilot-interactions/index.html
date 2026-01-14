@@ -1,0 +1,1387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaadin DevTools Prototype</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* === CSS Custom Properties === */
+        :root {
+            --devtools-primary: #00b4f0;
+            --devtools-bg: #1a1a2e;
+            --devtools-text: #ffffff;
+            --devtools-hover: #16213e;
+            --toolbar-height: 48px;
+            --activation-size: 48px;
+            --transition-speed: 200ms;
+            --selection-color: rgba(0, 180, 240, 0.3);
+            --selection-border: rgba(0, 180, 240, 0.8);
+        }
+
+        /* === Reset & Base === */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+        }
+
+        /* === Configuration Bar === */
+        .config-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 44px;
+            background: #2d2d2d;
+            color: white;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            gap: 16px;
+            z-index: 9999;
+            font-size: 13px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .config-label {
+            font-weight: 500;
+            color: #aaa;
+        }
+
+        .feature-option {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            cursor: pointer;
+            padding: 4px 8px;
+            border-radius: 4px;
+            transition: background var(--transition-speed);
+        }
+
+        .feature-option:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .feature-option input {
+            accent-color: var(--devtools-primary);
+        }
+
+        /* === App Container === */
+        .app-container {
+            padding: 20px 20px 100px;
+            max-width: 550px;
+            margin: 50px auto 0;
+        }
+
+        /* === Address Form === */
+        .address-form {
+            background: white;
+            padding: 28px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .address-form h2 {
+            margin: 0 0 24px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .form-field {
+            flex: 1;
+        }
+
+        .form-field {
+            margin-bottom: 18px;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .form-field input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        .form-field input:focus {
+            outline: none;
+            border-color: var(--devtools-primary);
+            box-shadow: 0 0 0 3px rgba(0, 180, 240, 0.15);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid #ddd;
+            color: #555;
+        }
+
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        .btn-primary {
+            background: #1a73e8;
+            border: 1px solid #1a73e8;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1557b0;
+            border-color: #1557b0;
+        }
+
+        /* === Selection Overlay === */
+        .selection-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9997; /* Below highlight (9998) and devtools (10000) */
+            display: none;
+            cursor: crosshair;
+        }
+
+        .selection-overlay.active {
+            display: block;
+        }
+
+        /* Selected component style */
+        [data-component].selected {
+            outline: 2px solid var(--devtools-primary);
+            outline-offset: 2px;
+        }
+
+        /* === DevTools Container === */
+        .devtools {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: row-reverse;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* === Activation Button === */
+        .activation-btn {
+            width: var(--activation-size);
+            height: var(--activation-size);
+            border-radius: 50%;
+            background: var(--devtools-bg);
+            border: 2px solid var(--devtools-primary);
+            color: var(--devtools-primary);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+            flex-shrink: 0;
+        }
+
+        .activation-btn:hover {
+            background: var(--devtools-primary);
+            color: var(--devtools-bg);
+            transform: scale(1.08);
+        }
+
+        .activation-btn svg {
+            width: 22px;
+            height: 22px;
+        }
+
+        .devtools[data-active="true"] .activation-btn {
+            background: var(--devtools-primary);
+            color: var(--devtools-bg);
+        }
+
+        /* Keep outline style when hovering in preview mode */
+        .devtools[data-preview="true"] .activation-btn:hover {
+            background: var(--devtools-bg);
+            color: var(--devtools-primary);
+            transform: scale(1.08);
+        }
+
+        /* === Toolbar === */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            background: var(--devtools-bg);
+            border-radius: 24px;
+            height: var(--toolbar-height);
+            overflow: hidden;
+            max-width: 0;
+            opacity: 0;
+            padding: 0;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .toolbar[data-expanded="true"] {
+            max-width: 400px;
+            opacity: 1;
+            padding: 4px 8px;
+            overflow: visible;
+        }
+
+        /* Hide tools in hover preview mode */
+        .toolbar[data-preview="true"] .tool-icons {
+            display: none;
+        }
+
+        .toolbar[data-preview="true"] .mode-selector,
+        .toolbar[data-preview="true"] .global-menu-container {
+            border-left: none;
+            padding-left: 0;
+            margin-left: 0;
+        }
+
+        /* === Mode Selector === */
+        .mode-selector {
+            display: flex;
+            gap: 2px;
+            padding-left: 10px;
+            border-left: 1px solid rgba(255,255,255,0.15);
+            margin-left: 6px;
+        }
+
+        .mode-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            background: transparent;
+            color: var(--devtools-text);
+            opacity: 0.5;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .mode-btn:hover {
+            opacity: 0.8;
+            background: var(--devtools-hover);
+        }
+
+        .mode-btn[data-active="true"] {
+            opacity: 1;
+            background: var(--devtools-primary);
+            color: var(--devtools-bg);
+        }
+
+        /* Outline style for selected mode in preview (not yet activated) */
+        .toolbar[data-preview="true"] .mode-btn[data-active="true"] {
+            background: transparent;
+            color: var(--devtools-primary);
+            border: 2px solid var(--devtools-primary);
+        }
+
+        .mode-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* === Tool Icons === */
+        .tool-icons {
+            display: flex;
+            gap: 2px;
+        }
+
+        .tool-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--devtools-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+            opacity: 0.7;
+        }
+
+        .tool-btn:hover {
+            background: var(--devtools-hover);
+            opacity: 1;
+        }
+
+        .tool-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .tool-btn[data-active="true"] {
+            color: var(--devtools-primary);
+            opacity: 1;
+        }
+
+        /* === Tool Panels === */
+        .tool-panels-container {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            display: flex;
+            flex-direction: column-reverse;
+            gap: 8px;
+            z-index: 10000;
+        }
+
+        .tool-panel {
+            width: 280px;
+            background: var(--devtools-bg);
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+        }
+
+        .tool-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .tool-panel-title {
+            color: var(--devtools-text);
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .tool-panel-close {
+            background: none;
+            border: none;
+            color: var(--devtools-text);
+            opacity: 0.5;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-panel-close:hover {
+            opacity: 1;
+        }
+
+        .tool-panel-content {
+            padding: 16px;
+            color: var(--devtools-text);
+            font-size: 13px;
+            opacity: 0.7;
+        }
+
+        /* === Global Menu === */
+        .global-menu-container {
+            position: relative;
+            margin-left: 6px;
+            padding-left: 10px;
+            border-left: 1px solid rgba(255,255,255,0.15);
+        }
+
+        .global-menu-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--devtools-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+            opacity: 0.7;
+        }
+
+        .global-menu-btn:hover {
+            background: var(--devtools-hover);
+            opacity: 1;
+        }
+
+        .global-menu-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .global-menu {
+            position: absolute;
+            bottom: calc(var(--activation-size) + 8px);
+            right: 0;
+            background: var(--devtools-bg);
+            border-radius: 8px;
+            padding: 6px;
+            min-width: 180px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all var(--transition-speed) ease;
+        }
+
+        .global-menu[data-open="true"] {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            color: var(--devtools-text);
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background var(--transition-speed);
+            text-align: left;
+        }
+
+        .menu-item:hover {
+            background: var(--devtools-hover);
+        }
+
+        .menu-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        /* === Global Toolbar (vertical) === */
+        .global-toolbar {
+            position: absolute;
+            bottom: calc(var(--activation-size) + 8px);
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: var(--devtools-bg);
+            padding: 6px;
+            border-radius: 8px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all var(--transition-speed) ease;
+        }
+
+        .global-toolbar[data-visible="true"] {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .global-tool-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--devtools-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-speed);
+        }
+
+        .global-tool-btn:hover {
+            background: var(--devtools-hover);
+        }
+
+        .global-tool-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* === Edit Context === */
+        [data-file].edit-context {
+            outline: 2px dashed var(--devtools-primary);
+            outline-offset: 4px;
+            position: relative;
+        }
+
+        /* Edit Context Badge (positioned via JS) */
+        .edit-context-badge {
+            position: fixed;
+            display: none;
+            align-items: center;
+            gap: 4px;
+            background: var(--devtools-bg);
+            color: var(--devtools-primary);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-family: monospace;
+            z-index: 10001;
+        }
+
+        .edit-context-badge.visible {
+            display: flex;
+        }
+
+        .drill-up-icon {
+            width: 12px;
+            height: 12px;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 100ms;
+        }
+
+        .drill-up-icon:hover {
+            opacity: 0.7 !important;
+        }
+
+        .drill-up-icon.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+
+        /* === Selection Highlight === */
+        .selection-highlight {
+            position: fixed;
+            pointer-events: none;
+            border: 2px solid var(--selection-border);
+            background: var(--selection-color);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 100ms ease;
+            border-radius: 4px;
+        }
+
+        .selection-highlight.visible {
+            opacity: 1;
+        }
+
+        .highlight-label {
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            background: none;
+            color: var(--devtools-primary);
+            padding: 2px;
+            font-size: 11px;
+            font-family: monospace;
+            pointer-events: auto;
+            cursor: pointer;
+            display: none;
+        }
+
+        .highlight-label:hover {
+            text-decoration: underline;
+        }
+
+        .highlight-label.visible {
+            display: block;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Configuration Bar -->
+    <header class="config-bar">
+        <span class="config-label">Prototype options:</span>
+        <label class="feature-option">
+            <input type="checkbox" id="hover-mode">
+            <span>Hover mode</span>
+        </label>
+        <label class="feature-option">
+            <input type="checkbox" id="context-menu">
+            <span>Context menu</span>
+        </label>
+        <label class="feature-option">
+            <input type="checkbox" id="global-toolbar">
+            <span>Global toolbar</span>
+        </label>
+    </header>
+
+    <!-- App Container -->
+    <main class="app-container" data-file="MainView.java">
+        <form class="address-form" data-component="panel" data-file="AddressForm.java">
+            <h2>Shipping Address</h2>
+            <div class="form-row">
+                <div class="form-field" data-component="text-field">
+                    <label>First Name</label>
+                    <input type="text" placeholder="John">
+                </div>
+                <div class="form-field" data-component="text-field">
+                    <label>Last Name</label>
+                    <input type="text" placeholder="Doe">
+                </div>
+            </div>
+            <div class="form-field" data-component="text-field">
+                <label>Street Address</label>
+                <input type="text" placeholder="123 Main St">
+            </div>
+            <div class="form-row">
+                <div class="form-field" data-component="text-field">
+                    <label>City</label>
+                    <input type="text" placeholder="Springfield">
+                </div>
+                <div class="form-field" data-component="text-field">
+                    <label>ZIP Code</label>
+                    <input type="text" placeholder="12345">
+                </div>
+            </div>
+            <div class="form-actions" data-component="button-group">
+                <button type="button" class="btn btn-secondary" data-component="button">Cancel</button>
+                <button type="submit" class="btn btn-primary" data-component="button">Save</button>
+            </div>
+        </form>
+    </main>
+
+    <!-- DevTools -->
+    <div class="devtools" data-active="false">
+        <button class="activation-btn" aria-label="Toggle DevTools"></button>
+
+        <!-- Global Toolbar (vertical, above activation button) -->
+        <div class="global-toolbar" data-visible="false">
+            <button class="global-tool-btn" title="Info"><i data-lucide="info"></i></button>
+            <button class="global-tool-btn" title="Log"><i data-lucide="terminal"></i></button>
+            <button class="global-tool-btn" title="Feature Flags"><i data-lucide="flag"></i></button>
+            <button class="global-tool-btn" title="Impersonation"><i data-lucide="user"></i></button>
+        </div>
+
+        <div class="toolbar" data-expanded="false">
+            <div class="tool-icons"></div>
+
+            <div class="mode-selector">
+                <button class="mode-btn" data-mode="edit" title="Edit Mode">
+                    <i data-lucide="pencil"></i>
+                </button>
+                <button class="mode-btn" data-mode="inspect" title="Inspect Mode">
+                    <i data-lucide="search"></i>
+                </button>
+                <button class="mode-btn" data-mode="test" title="Test Mode">
+                    <i data-lucide="play-circle"></i>
+                </button>
+            </div>
+
+            <div class="global-menu-container">
+                <button class="global-menu-btn" title="Global Settings">
+                    <i data-lucide="more-vertical"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Global menu moved outside toolbar so it can appear on right-click -->
+        <div class="global-menu" data-open="false">
+            <button class="menu-item"><i data-lucide="log-in"></i> Log in to Vaadin</button>
+            <button class="menu-item"><i data-lucide="user"></i> Impersonate app user</button>
+            <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
+            <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
+        </div>
+    </div>
+
+    <!-- Tool Panels Container -->
+    <div class="tool-panels-container"></div>
+
+    <!-- Selection Highlight -->
+    <!-- Selection Overlay - blocks native interactions in selection mode -->
+    <div class="selection-overlay"></div>
+
+    <div class="selection-highlight">
+        <span class="highlight-label"></span>
+    </div>
+
+    <!-- Edit Context Badge -->
+    <div class="edit-context-badge">
+        <svg class="drill-up-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9 9 4 4 9"></path><path d="M20 20h-7a4 4 0 0 1-4-4V4"></path></svg>
+        <span class="badge-text"></span>
+    </div>
+
+    <script>
+        // === Mode Configuration ===
+        const MODE_CONFIG = {
+            edit: {
+                name: 'Edit',
+                icon: 'pencil',
+                selectionMode: true,
+                readOnly: false,
+                tools: [
+                    { id: 'outline', name: 'Outline', icon: 'layers' },
+                    { id: 'palette', name: 'Palette', icon: 'palette' },
+                    { id: 'properties', name: 'Properties', icon: 'sliders-horizontal' },
+                    { id: 'log', name: 'Log', icon: 'terminal' }
+                ]
+            },
+            inspect: {
+                name: 'Inspect',
+                icon: 'search',
+                selectionMode: true,
+                readOnly: true,
+                tools: [
+                    { id: 'outline', name: 'Outline', icon: 'layers' },
+                    { id: 'properties', name: 'Properties', icon: 'sliders-horizontal' },
+                    { id: 'log', name: 'Log', icon: 'terminal' },
+                    { id: 'info', name: 'Info', icon: 'info' },
+                    { id: 'flags', name: 'Feature Flags', icon: 'flag' }
+                ]
+            },
+            test: {
+                name: 'Test',
+                icon: 'play-circle',
+                selectionMode: false,
+                readOnly: true,
+                tools: [
+                    { id: 'recorder', name: 'Test Recorder', icon: 'video' },
+                    { id: 'info', name: 'Info', icon: 'info' },
+                    { id: 'flags', name: 'Feature Flags', icon: 'flag' },
+                    { id: 'log', name: 'Log', icon: 'terminal' }
+                ]
+            }
+        };
+
+        // === Application State ===
+        const state = {
+            active: false,
+            currentMode: 'edit',
+            selectedComponents: [],
+            hoverModeEnabled: false,
+            contextMenuEnabled: false,
+            globalToolbarEnabled: false,
+            toolbarExpanded: false,
+            globalMenuOpen: false,
+            hoverPreviewActive: false,
+            editContext: null,
+            openPanels: new Set(),  // Set of tool IDs that are open
+            // Modifier keys are read from event directly (ctrlKey/metaKey, shiftKey)
+        };
+
+        // === DOM References ===
+        const elements = {};
+
+        function initElements() {
+            elements.devtools = document.querySelector('.devtools');
+            elements.activationBtn = document.querySelector('.activation-btn');
+            elements.toolbar = document.querySelector('.toolbar');
+            elements.modeSelector = document.querySelector('.mode-selector');
+            elements.toolIcons = document.querySelector('.tool-icons');
+            elements.globalMenu = document.querySelector('.global-menu');
+            elements.globalMenuBtn = document.querySelector('.global-menu-btn');
+            elements.selectionHighlight = document.querySelector('.selection-highlight');
+            elements.highlightLabel = document.querySelector('.highlight-label');
+            elements.selectionOverlay = document.querySelector('.selection-overlay');
+            elements.appContainer = document.querySelector('.app-container');
+            elements.globalToolbar = document.querySelector('.global-toolbar');
+            elements.editContextBadge = document.querySelector('.edit-context-badge');
+            elements.badgeText = document.querySelector('.badge-text');
+            elements.drillUpIcon = document.querySelector('.drill-up-icon');
+            elements.toolPanelsContainer = document.querySelector('.tool-panels-container');
+        }
+
+        // === Rendering ===
+        function render() {
+            elements.devtools.dataset.active = state.active;
+            elements.devtools.dataset.preview = state.hoverPreviewActive && !state.active;
+            elements.toolbar.dataset.expanded = state.toolbarExpanded;
+            elements.toolbar.dataset.preview = state.hoverPreviewActive && !state.active;
+            elements.globalMenu.dataset.open = state.globalMenuOpen;
+            elements.globalToolbar.dataset.visible = state.globalToolbarEnabled && (state.active || state.hoverPreviewActive);
+
+            // Update activation button icon
+            const activationIcon = state.active ? 'x' : MODE_CONFIG[state.currentMode].icon;
+            elements.activationBtn.innerHTML = `<i data-lucide="${activationIcon}"></i>`;
+            lucide.createIcons({ nodes: [elements.activationBtn] });
+
+            // Update mode buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.dataset.active = btn.dataset.mode === state.currentMode;
+            });
+        }
+
+        function renderTools(tools) {
+            elements.toolIcons.innerHTML = '';
+
+            tools.forEach(tool => {
+                const btn = document.createElement('button');
+                btn.className = 'tool-btn';
+                btn.dataset.tool = tool.id;
+                btn.title = tool.name;
+                btn.innerHTML = `<i data-lucide="${tool.icon}"></i>`;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleToolClick(tool);
+                });
+                elements.toolIcons.appendChild(btn);
+            });
+
+            lucide.createIcons();
+        }
+
+        // === Activation Functions ===
+        function activateDevTools(modeId) {
+            state.active = true;
+            state.currentMode = modeId;
+            state.toolbarExpanded = true;
+            state.hoverPreviewActive = false;
+
+            const modeConfig = MODE_CONFIG[modeId];
+
+            if (modeConfig.selectionMode) {
+                elements.selectionOverlay.classList.add('active');
+                state.editContext = 'MainView.java';
+                updateEditContext();
+            } else {
+                elements.selectionOverlay.classList.remove('active');
+                state.editContext = null;
+                updateEditContext();
+                clearSelection();
+                hideHighlight();
+            }
+
+            renderTools(modeConfig.tools);
+
+            // Show panels that are available in this mode, hide others
+            updateVisiblePanels();
+            updateToolButtonStates();
+
+            render();
+        }
+
+        function deactivateDevTools() {
+            state.active = false;
+            state.toolbarExpanded = false;
+            state.globalMenuOpen = false;
+            state.editContext = null;
+
+            elements.selectionOverlay.classList.remove('active');
+            clearSelection();
+            hideHighlight();
+            hideAllPanels();
+            updateEditContext();
+            render();
+        }
+
+        function hideAllPanels() {
+            elements.toolPanelsContainer.querySelectorAll('.tool-panel').forEach(panel => {
+                panel.style.display = 'none';
+            });
+        }
+
+        function showAllPanels() {
+            // Re-show panels based on current mode
+            updateVisiblePanels();
+        }
+
+        // === Selection Functions ===
+        function selectComponent(element, addToSelection = false) {
+            if (!addToSelection) {
+                clearSelection();
+            }
+
+            element.classList.add('selected');
+            state.selectedComponents.push(element);
+
+            const componentType = element.dataset.component;
+            console.log('Selected:', componentType, element);
+        }
+
+        function clearSelection() {
+            state.selectedComponents.forEach(el => el.classList.remove('selected'));
+            state.selectedComponents = [];
+        }
+
+        function highlightComponent(element, drillableFile = null) {
+            const rect = element.getBoundingClientRect();
+            const highlight = elements.selectionHighlight;
+
+            highlight.style.left = rect.left + 'px';
+            highlight.style.top = rect.top + 'px';
+            highlight.style.width = rect.width + 'px';
+            highlight.style.height = rect.height + 'px';
+            highlight.classList.add('visible');
+
+            // Show label if this is a drillable component
+            if (drillableFile && drillableFile !== state.editContext) {
+                elements.highlightLabel.textContent = drillableFile;
+                elements.highlightLabel.classList.add('visible');
+            } else {
+                elements.highlightLabel.classList.remove('visible');
+            }
+        }
+
+        function hideHighlight() {
+            elements.selectionHighlight.classList.remove('visible');
+            elements.highlightLabel.classList.remove('visible');
+        }
+
+        function updateEditContext() {
+            // Remove previous context
+            document.querySelectorAll('.edit-context').forEach(el => {
+                el.classList.remove('edit-context');
+            });
+
+            // Add to current context and position badge
+            if (state.editContext) {
+                const contextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                if (contextEl) {
+                    contextEl.classList.add('edit-context');
+
+                    // Position and show badge
+                    const rect = contextEl.getBoundingClientRect();
+                    elements.editContextBadge.style.left = (rect.left + 8) + 'px';
+                    elements.editContextBadge.style.top = rect.top + 'px';
+                    elements.editContextBadge.style.transform = 'translateY(-50%)';
+                    elements.badgeText.textContent = state.editContext;
+                    elements.editContextBadge.classList.add('visible');
+
+                    // Show drill-up icon only if not at root
+                    if (state.editContext !== 'MainView.java') {
+                        elements.drillUpIcon.classList.add('visible');
+                    } else {
+                        elements.drillUpIcon.classList.remove('visible');
+                    }
+                }
+            } else {
+                elements.editContextBadge.classList.remove('visible');
+            }
+        }
+
+        // === Event Handlers ===
+        function handleActivationClick() {
+            if (state.active) {
+                deactivateDevTools();
+            } else {
+                activateDevTools(state.currentMode);
+            }
+        }
+
+        let hoverTimeout = null;
+
+        function handleActivationHoverEnter() {
+            if (!state.hoverModeEnabled) return;
+            if (state.active) return;
+
+            clearTimeout(hoverTimeout);
+            state.hoverPreviewActive = true;
+            state.toolbarExpanded = true;
+            render();
+        }
+
+        function handleActivationHoverLeave() {
+            if (!state.hoverModeEnabled) return;
+            if (state.active) return;
+
+            hoverTimeout = setTimeout(() => {
+                if (state.hoverPreviewActive && !state.active) {
+                    state.hoverPreviewActive = false;
+                    state.toolbarExpanded = false;
+                    state.globalMenuOpen = false;
+                    render();
+                }
+            }, 200);
+        }
+
+        function handleToolbarHoverEnter() {
+            if (!state.hoverModeEnabled) return;
+            clearTimeout(hoverTimeout);
+        }
+
+        function handleToolbarHoverLeave() {
+            if (!state.hoverModeEnabled) return;
+            if (state.active) return;
+
+            hoverTimeout = setTimeout(() => {
+                if (state.hoverPreviewActive && !state.active) {
+                    state.hoverPreviewActive = false;
+                    state.toolbarExpanded = false;
+                    state.globalMenuOpen = false;
+                    render();
+                }
+            }, 200);
+        }
+
+        function handleModeSelect(modeId) {
+            state.currentMode = modeId;
+
+            if (state.active || state.hoverPreviewActive) {
+                activateDevTools(modeId);
+            }
+        }
+
+        function handleToolClick(tool) {
+            if (state.openPanels.has(tool.id)) {
+                closePanel(tool.id);
+            } else {
+                openPanel(tool);
+            }
+        }
+
+        function openPanel(tool) {
+            state.openPanels.add(tool.id);
+
+            // Create panel element if it doesn't exist
+            let panelEl = elements.toolPanelsContainer.querySelector(`[data-panel="${tool.id}"]`);
+            if (!panelEl) {
+                panelEl = createPanelElement(tool);
+                elements.toolPanelsContainer.appendChild(panelEl);
+            }
+
+            // Update content (read-only status may vary by mode)
+            updatePanelContent(panelEl, tool);
+            updateToolButtonStates();
+        }
+
+        function closePanel(toolId) {
+            state.openPanels.delete(toolId);
+
+            // Remove panel element
+            const panelEl = elements.toolPanelsContainer.querySelector(`[data-panel="${toolId}"]`);
+            if (panelEl) {
+                panelEl.remove();
+            }
+
+            updateToolButtonStates();
+        }
+
+        function createPanelElement(tool) {
+            const panel = document.createElement('div');
+            panel.className = 'tool-panel';
+            panel.dataset.panel = tool.id;
+
+            panel.innerHTML = `
+                <div class="tool-panel-header">
+                    <span class="tool-panel-title">${tool.name}</span>
+                    <button class="tool-panel-close">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                    </button>
+                </div>
+                <div class="tool-panel-content"></div>
+            `;
+
+            // Add close button handler
+            panel.querySelector('.tool-panel-close').addEventListener('click', () => {
+                closePanel(tool.id);
+            });
+
+            return panel;
+        }
+
+        function updatePanelContent(panelEl, tool) {
+            const modeConfig = MODE_CONFIG[state.currentMode];
+            const accessText = modeConfig.readOnly ? 'Read-only' : 'Read/Write';
+            panelEl.querySelector('.tool-panel-content').textContent = accessText;
+        }
+
+        function updateToolButtonStates() {
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.dataset.active = state.openPanels.has(btn.dataset.tool);
+            });
+        }
+
+        function updateVisiblePanels() {
+            const modeConfig = MODE_CONFIG[state.currentMode];
+            const availableToolIds = new Set(modeConfig.tools.map(t => t.id));
+
+            // Show/hide panels based on whether tool is in current mode
+            state.openPanels.forEach(toolId => {
+                const panelEl = elements.toolPanelsContainer.querySelector(`[data-panel="${toolId}"]`);
+                if (panelEl) {
+                    if (availableToolIds.has(toolId)) {
+                        panelEl.style.display = '';
+                        // Update content for current mode
+                        const tool = modeConfig.tools.find(t => t.id === toolId);
+                        if (tool) updatePanelContent(panelEl, tool);
+                    } else {
+                        panelEl.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        function handleGlobalMenuToggle(e) {
+            e.stopPropagation();
+            state.globalMenuOpen = !state.globalMenuOpen;
+            console.log('Global menu toggled:', state.globalMenuOpen);
+            render();
+        }
+
+        function getComponentContext(component) {
+            // Get the file context that contains this component
+            const fileEl = component.closest('[data-file]');
+            return fileEl ? fileEl.dataset.file : null;
+        }
+
+        function isSelectableInContext(component) {
+            // If component HAS data-file, it's selectable from its PARENT context
+            if (component.dataset.file) {
+                const parentFileEl = component.parentElement?.closest('[data-file]');
+                const parentFile = parentFileEl?.dataset.file;
+                return parentFile === state.editContext;
+            }
+
+            // Otherwise, component is selectable if its containing file matches current context
+            const componentFile = getComponentContext(component);
+            return componentFile === state.editContext;
+        }
+
+        function getComponentAtPoint(x, y) {
+            // Temporarily hide overlay to find element underneath
+            elements.selectionOverlay.style.pointerEvents = 'none';
+            const element = document.elementFromPoint(x, y);
+            elements.selectionOverlay.style.pointerEvents = '';
+            return element;
+        }
+
+        function handleOverlayClick(event) {
+            const ctrlPressed = event.ctrlKey || event.metaKey;
+            const shiftPressed = event.shiftKey;
+
+            const element = getComponentAtPoint(event.clientX, event.clientY);
+            let component = element?.closest('[data-component]');
+            if (!component || !elements.appContainer.contains(component)) {
+                // Clicked outside any component - handle drill-out
+                if (state.editContext !== 'MainView.java') {
+                    state.editContext = 'MainView.java';
+                    updateEditContext();
+                    clearSelection();
+                }
+                return;
+            }
+
+            // If CMD/CTRL pressed, pierce through edit context
+            if (ctrlPressed) {
+                const inContext = isSelectableInContext(component);
+                if (!inContext) {
+                    const newContext = getComponentContext(component);
+                    if (newContext) {
+                        state.editContext = newContext;
+                        updateEditContext();
+                    }
+                }
+                selectComponent(component, shiftPressed);
+                return;
+            }
+
+            // Find the nearest selectable component (may be an ancestor)
+            if (!isSelectableInContext(component)) {
+                const parentFile = component.closest('[data-file]');
+                if (parentFile && parentFile.dataset.component && isSelectableInContext(parentFile)) {
+                    component = parentFile;
+                } else {
+                    return; // Nothing selectable
+                }
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            selectComponent(component, shiftPressed);
+        }
+
+        function handleOverlayHover(event) {
+            const ctrlPressed = event.ctrlKey || event.metaKey;
+
+            const element = getComponentAtPoint(event.clientX, event.clientY);
+            const component = element?.closest('[data-component]');
+            if (!component || !elements.appContainer.contains(component)) {
+                hideHighlight();
+                return;
+            }
+
+            // If CMD/CTRL pressed, highlight the actual component (pierce through context)
+            if (ctrlPressed) {
+                highlightComponent(component, component.dataset.file);
+                return;
+            }
+
+            // Check if component is selectable in current context
+            if (isSelectableInContext(component)) {
+                highlightComponent(component, component.dataset.file);
+            } else {
+                // Not selectable - find nearest selectable ancestor (the parent file container)
+                const parentFile = component.closest('[data-file]');
+                if (parentFile && parentFile.dataset.component && isSelectableInContext(parentFile)) {
+                    highlightComponent(parentFile, parentFile.dataset.file);
+                } else {
+                    hideHighlight();
+                }
+            }
+        }
+
+        function handleOverlayDblClick(event) {
+            const element = getComponentAtPoint(event.clientX, event.clientY);
+            // Find element with data-file that's different from current context
+            const component = element?.closest('[data-file]');
+            if (component && component.dataset.file !== state.editContext) {
+                state.editContext = component.dataset.file;
+                updateEditContext();
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }
+
+        function handleHoverModeChange(enabled) {
+            state.hoverModeEnabled = enabled;
+        }
+
+        function handleActivationContextMenu(e) {
+            if (!state.contextMenuEnabled) return;
+            e.preventDefault();
+            state.globalMenuOpen = !state.globalMenuOpen;
+            render();
+        }
+
+        // === Initialize ===
+        function init() {
+            initElements();
+
+            // Activation button events
+            elements.activationBtn.addEventListener('click', handleActivationClick);
+            elements.activationBtn.addEventListener('mouseenter', handleActivationHoverEnter);
+            elements.activationBtn.addEventListener('mouseleave', handleActivationHoverLeave);
+            elements.activationBtn.addEventListener('contextmenu', handleActivationContextMenu);
+
+            // Toolbar hover events
+            elements.toolbar.addEventListener('mouseenter', handleToolbarHoverEnter);
+            elements.toolbar.addEventListener('mouseleave', handleToolbarHoverLeave);
+
+            // Mode buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleModeSelect(btn.dataset.mode);
+                });
+            });
+
+            // Global menu
+            console.log('Global menu btn found:', elements.globalMenuBtn);
+            elements.globalMenuBtn.addEventListener('click', handleGlobalMenuToggle);
+
+            // Global menu items
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('Menu item clicked:', item.textContent.trim());
+                    state.globalMenuOpen = false;
+                    render();
+                });
+            });
+
+            // Click outside to close menu
+            document.addEventListener('click', (e) => {
+                if (state.globalMenuOpen &&
+                    !e.target.closest('.global-menu') &&
+                    !e.target.closest('.global-menu-btn')) {
+                    state.globalMenuOpen = false;
+                    render();
+                }
+            });
+
+            // Selection overlay events (blocks native interactions, uses elementFromPoint)
+            elements.selectionOverlay.addEventListener('click', handleOverlayClick);
+            elements.selectionOverlay.addEventListener('mousemove', handleOverlayHover);
+            elements.selectionOverlay.addEventListener('dblclick', handleOverlayDblClick);
+            elements.selectionOverlay.addEventListener('mouseleave', hideHighlight);
+
+            // Highlight label - keep highlight visible when hovering, drill on click
+            elements.highlightLabel.addEventListener('mouseenter', () => {
+                // Prevent hideHighlight from firing when mouse moves to label
+                elements.selectionHighlight.classList.add('visible');
+                elements.highlightLabel.classList.add('visible');
+            });
+            elements.highlightLabel.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const file = elements.highlightLabel.textContent;
+                if (file && file !== state.editContext) {
+                    state.editContext = file;
+                    updateEditContext();
+                    clearSelection();
+                    hideHighlight();
+                }
+            });
+
+            // Modifier keys (CMD/CTRL, SHIFT) are read from event properties directly
+
+            // Configuration bar - feature checkboxes
+            document.getElementById('hover-mode').addEventListener('change', (e) => {
+                handleHoverModeChange(e.target.checked);
+            });
+            document.getElementById('context-menu').addEventListener('change', (e) => {
+                state.contextMenuEnabled = e.target.checked;
+            });
+            document.getElementById('global-toolbar').addEventListener('change', (e) => {
+                state.globalToolbarEnabled = e.target.checked;
+                render();
+            });
+
+            // Global toolbar buttons (stub handlers)
+            document.querySelectorAll('.global-tool-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    console.log('Global tool clicked:', btn.title);
+                });
+            });
+
+            // Prevent form submission
+            document.querySelector('.address-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('Form submitted (prevented)');
+            });
+
+            // Drill-up icon click - go back to parent context
+            elements.drillUpIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                state.editContext = 'MainView.java';
+                updateEditContext();
+                clearSelection();
+            });
+
+            // Initialize Lucide icons
+            lucide.createIcons();
+
+            // Initial render
+            render();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
