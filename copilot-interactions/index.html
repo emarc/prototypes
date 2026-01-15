@@ -673,7 +673,7 @@
                     <input type="text" placeholder="12345">
                 </div>
             </div>
-            <div class="form-actions" data-component="button-group">
+            <div class="form-actions" data-component="button-bar" data-file="ButtonBar.java">
                 <button type="button" class="btn btn-secondary" data-component="button">Cancel</button>
                 <button type="submit" class="btn btn-primary" data-component="button">Save</button>
             </div>
@@ -1181,9 +1181,15 @@
             const element = getComponentAtPoint(event.clientX, event.clientY);
             let component = element?.closest('[data-component]');
             if (!component || !elements.appContainer.contains(component)) {
-                // Clicked outside any component - handle drill-out
+                // Clicked outside any component - drill up one level
                 if (state.editContext !== 'MainView.java') {
-                    state.editContext = 'MainView.java';
+                    const currentContextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                    if (currentContextEl) {
+                        const parentFileEl = currentContextEl.parentElement?.closest('[data-file]');
+                        state.editContext = parentFileEl ? parentFileEl.dataset.file : 'MainView.java';
+                    } else {
+                        state.editContext = 'MainView.java';
+                    }
                     updateEditContext();
                     clearSelection();
                 }
@@ -1371,7 +1377,14 @@
             // Drill-up icon click - go back to parent context
             elements.drillUpIcon.addEventListener('click', (e) => {
                 e.stopPropagation();
-                state.editContext = 'MainView.java';
+                // Find the current context element and get its parent file context
+                const currentContextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                if (currentContextEl) {
+                    const parentFileEl = currentContextEl.parentElement?.closest('[data-file]');
+                    state.editContext = parentFileEl ? parentFileEl.dataset.file : 'MainView.java';
+                } else {
+                    state.editContext = 'MainView.java';
+                }
                 updateEditContext();
                 clearSelection();
             });
