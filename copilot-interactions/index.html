@@ -643,6 +643,10 @@
             <input type="checkbox" id="global-toolbar">
             <span>Global toolbar</span>
         </label>
+        <label class="feature-option">
+            <input type="checkbox" id="pierce-by-default">
+            <span>Pierce by default</span>
+        </label>
     </header>
 
     <!-- App Container -->
@@ -790,6 +794,7 @@
             hoverModeEnabled: false,
             contextMenuEnabled: false,
             globalToolbarEnabled: false,
+            pierceByDefault: false,
             toolbarExpanded: false,
             globalMenuOpen: false,
             hoverPreviewActive: false,
@@ -1177,6 +1182,8 @@
         function handleOverlayClick(event) {
             const ctrlPressed = event.ctrlKey || event.metaKey;
             const shiftPressed = event.shiftKey;
+            // XOR: pierce mode when ctrl pressed XOR pierce-by-default enabled
+            const pierceMode = ctrlPressed !== state.pierceByDefault;
 
             const element = getComponentAtPoint(event.clientX, event.clientY);
             let component = element?.closest('[data-component]');
@@ -1196,8 +1203,8 @@
                 return;
             }
 
-            // If CMD/CTRL pressed, pierce through edit context
-            if (ctrlPressed) {
+            // Pierce mode: select any component, changing context if needed
+            if (pierceMode) {
                 const inContext = isSelectableInContext(component);
                 if (!inContext) {
                     const newContext = getComponentContext(component);
@@ -1228,6 +1235,8 @@
 
         function handleOverlayHover(event) {
             const ctrlPressed = event.ctrlKey || event.metaKey;
+            // XOR: pierce mode when ctrl pressed XOR pierce-by-default enabled
+            const pierceMode = ctrlPressed !== state.pierceByDefault;
 
             const element = getComponentAtPoint(event.clientX, event.clientY);
             const component = element?.closest('[data-component]');
@@ -1236,8 +1245,8 @@
                 return;
             }
 
-            // If CMD/CTRL pressed, highlight the actual component (pierce through context)
-            if (ctrlPressed) {
+            // Pierce mode: highlight the actual component regardless of context
+            if (pierceMode) {
                 highlightComponent(component, component.dataset.file);
                 return;
             }
@@ -1360,6 +1369,9 @@
             document.getElementById('global-toolbar').addEventListener('change', (e) => {
                 state.globalToolbarEnabled = e.target.checked;
                 render();
+            });
+            document.getElementById('pierce-by-default').addEventListener('change', (e) => {
+                state.pierceByDefault = e.target.checked;
             });
 
             // Global toolbar buttons (stub handlers)
