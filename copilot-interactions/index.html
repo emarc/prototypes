@@ -681,6 +681,10 @@
             <input type="checkbox" id="pierce-by-default">
             <span>Pierce by default</span>
         </label>
+        <label class="feature-option">
+            <input type="checkbox" id="ephemeral-panels">
+            <span>Ephemeral panels</span>
+        </label>
     </header>
 
     <!-- App Container -->
@@ -829,6 +833,7 @@
             contextMenuEnabled: false,
             globalToolbarEnabled: false,
             pierceByDefault: false,
+            ephemeralPanels: false,
             toolbarExpanded: false,
             globalMenuOpen: false,
             hoverPreviewActive: false,
@@ -946,6 +951,17 @@
 
         function hideAllPanels() {
             elements.toolPanelsContainer.querySelectorAll('.tool-panel').forEach(panel => {
+                // Save position before hiding (getBoundingClientRect returns zeros when display:none)
+                const rect = panel.getBoundingClientRect();
+                const toolId = panel.dataset.panel;
+                if (toolId && rect.width > 0) {
+                    state.panelPositions[toolId] = {
+                        x: rect.left,
+                        y: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
                 panel.style.display = 'none';
             });
         }
@@ -1100,6 +1116,15 @@
         }
 
         function openPanel(tool) {
+            // In ephemeral mode, close all other panels first
+            if (state.ephemeralPanels) {
+                state.openPanels.forEach(toolId => {
+                    if (toolId !== tool.id) {
+                        closePanel(toolId);
+                    }
+                });
+            }
+
             state.openPanels.add(tool.id);
 
             // Create panel element if it doesn't exist
@@ -1109,17 +1134,40 @@
                 elements.toolPanelsContainer.appendChild(panelEl);
             }
 
+            // In ephemeral mode, position near toolbar only if no saved position
+            if (state.ephemeralPanels && !state.panelPositions[tool.id]) {
+                positionPanelNearToolbar(panelEl);
+            }
+
             // Update content (read-only status may vary by mode)
             updatePanelContent(panelEl, tool);
             updateToolButtonStates();
         }
 
+        function positionPanelNearToolbar(panelEl) {
+            const toolbarRect = elements.toolbar.getBoundingClientRect();
+            // Position above the toolbar, aligned to the right
+            panelEl.style.right = '20px';
+            panelEl.style.bottom = (window.innerHeight - toolbarRect.top + 8) + 'px';
+            panelEl.style.left = 'auto';
+            panelEl.style.top = 'auto';
+        }
+
         function closePanel(toolId) {
             state.openPanels.delete(toolId);
 
-            // Remove panel element
             const panelEl = elements.toolPanelsContainer.querySelector(`[data-panel="${toolId}"]`);
             if (panelEl) {
+                // Save position BEFORE removing (only if element is visible)
+                const rect = panelEl.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    state.panelPositions[toolId] = {
+                        x: rect.left,
+                        y: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
                 panelEl.remove();
             }
 
@@ -1144,16 +1192,20 @@
             // Position panel - restore saved position or calculate new one
             const savedPos = state.panelPositions[tool.id];
             if (savedPos) {
+                // Use left/top positioning, clear right/bottom
                 panel.style.left = savedPos.x + 'px';
                 panel.style.top = savedPos.y + 'px';
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
                 if (savedPos.width) panel.style.width = savedPos.width + 'px';
                 if (savedPos.height) panel.style.height = savedPos.height + 'px';
-            } else {
-                // Position new panels with offset from bottom-right
+            } else if (!state.ephemeralPanels) {
+                // Non-ephemeral: cascade from bottom-right
                 const offset = state.openPanels.size * 30;
                 panel.style.right = (20 + offset) + 'px';
                 panel.style.bottom = (80 + offset) + 'px';
             }
+            // Ephemeral panels without saved position will be positioned in openPanel()
 
             // Set z-index and bring to front on mousedown
             panel.style.zIndex = state.panelZCounter++;
@@ -1212,9 +1264,9 @@
                 }
             });
 
-            // Save size on resize
+            // Save size on resize (with isConnected guard to prevent saving zeros)
             const resizeObserver = new ResizeObserver(() => {
-                if (!isDragging) {
+                if (!isDragging && panel.isConnected) {
                     const rect = panel.getBoundingClientRect();
                     state.panelPositions[tool.id] = {
                         x: rect.left,
@@ -1448,6 +1500,15 @@
                     state.globalMenuOpen = false;
                     render();
                 }
+
+                // Close ephemeral panels when clicking outside
+                if (state.ephemeralPanels && state.openPanels.size > 0) {
+                    const clickedPanel = e.target.closest('.tool-panel');
+                    const clickedToolBtn = e.target.closest('.tool-btn');
+                    if (!clickedPanel && !clickedToolBtn) {
+                        state.openPanels.forEach(toolId => closePanel(toolId));
+                    }
+                }
             });
 
             // Selection overlay events (blocks native interactions, uses elementFromPoint)
@@ -1488,6 +1549,11 @@
             });
             document.getElementById('pierce-by-default').addEventListener('change', (e) => {
                 state.pierceByDefault = e.target.checked;
+            });
+            document.getElementById('ephemeral-panels').addEventListener('change', (e) => {
+                state.ephemeralPanels = e.target.checked;
+                // Close all panels when switching modes
+                state.openPanels.forEach(toolId => closePanel(toolId));
             });
 
             // Global toolbar buttons (stub handlers)
