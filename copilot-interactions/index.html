@@ -344,6 +344,7 @@
 
         /* === Activation Button === */
         .activation-btn {
+            position: relative;
             width: var(--activation-size);
             height: var(--activation-size);
             border-radius: 50%;
@@ -372,6 +373,72 @@
         .devtools[data-active="true"] .activation-btn {
             background: var(--devtools-primary);
             color: var(--devtools-bg);
+        }
+
+        /* Arming animation - sweeps from nothing to half ring (right half) */
+        @keyframes arming-sweep {
+            0% {
+                clip-path: polygon(
+                    50% 50%, 50% 0%, 50% 0%, 50% 0%,
+                    50% 0%, 50% 0%, 50% 0%, 50% 50%
+                );
+            }
+            100% {
+                clip-path: polygon(
+                    50% 50%, 50% 0%, 100% 0%, 100% 50%,
+                    100% 100%, 50% 100%, 50% 50%, 50% 50%
+                );
+            }
+        }
+
+        /* Disarming animation - sweeps from full ring down to half ring (right half) */
+        @keyframes disarming-sweep {
+            0% {
+                clip-path: polygon(
+                    50% 50%, 50% 0%, 100% 0%, 100% 100%,
+                    0% 100%, 0% 0%, 50% 0%, 50% 50%
+                );
+            }
+            100% {
+                clip-path: polygon(
+                    50% 50%, 50% 0%, 100% 0%, 100% 50%,
+                    100% 100%, 50% 100%, 50% 50%, 50% 50%
+                );
+            }
+        }
+
+        .activation-btn::before {
+            content: '';
+            position: absolute;
+            inset: -4px;
+            border-radius: 50%;
+            border: 3px solid var(--devtools-primary);
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        .activation-btn.arming::before {
+            opacity: 1;
+            animation: arming-sweep 300ms ease-out forwards;
+        }
+
+        .activation-btn.arming {
+            animation: arming-wiggle 150ms ease-in-out;
+        }
+
+        @keyframes arming-wiggle {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        /* Disarming animation - full ring shrinks to half ring */
+        .activation-btn.disarming::before {
+            opacity: 1;
+            animation: disarming-sweep 300ms ease-out forwards;
+        }
+
+        .activation-btn.disarming {
+            animation: arming-wiggle 150ms ease-in-out;
         }
 
         /* Keep outline style when hovering in preview mode */
@@ -1039,7 +1106,13 @@
             panelPositions: {},     // Store {toolId: {x, y, width, height}}
             panelZCounter: 1,       // Counter for z-index stacking
             // Modifier keys are read from event directly (ctrlKey/metaKey, shiftKey)
+            // Shortcut state
+            shortcutArmed: false,       // First CMD/CTRL tap registered
+            shortcutCmdTaps: 0,         // Number of CMD/CTRL taps while shift held
         };
+
+        // Mode order for cycling
+        const MODE_ORDER = ['edit', 'inspect', 'test'];
 
         // === DOM References ===
         const elements = {};
@@ -1763,6 +1836,80 @@
             showComponentContextMenu(event.clientX, event.clientY);
         }
 
+        // === Keyboard Shortcut ===
+        function resetShortcut() {
+            state.shortcutArmed = false;
+            state.shortcutCmdTaps = 0;
+            elements.activationBtn.classList.remove('arming', 'disarming');
+        }
+
+        function armShortcut() {
+            state.shortcutArmed = true;
+            // Use 'arming' when inactive (will activate), 'disarming' when active (will deactivate)
+            elements.activationBtn.classList.remove('arming', 'disarming');
+            elements.activationBtn.classList.add(state.active ? 'disarming' : 'arming');
+        }
+
+        function cycleMode() {
+            const currentIndex = MODE_ORDER.indexOf(state.currentMode);
+            const nextIndex = (currentIndex + 1) % MODE_ORDER.length;
+            state.currentMode = MODE_ORDER[nextIndex];
+
+            if (state.active) {
+                activateDevTools(state.currentMode);
+            }
+
+            render();
+        }
+
+        function handleKeyDown(e) {
+            // Check for CMD (Mac) or CTRL (Windows/Linux)
+            const isCmdOrCtrl = e.key === 'Meta' || e.key === 'Control';
+            const isShift = e.key === 'Shift';
+
+            // If shift is held and we're in the shortcut sequence
+            if (e.shiftKey && state.shortcutCmdTaps > 0) {
+                // Any key other than CMD/CTRL or Shift cancels the shortcut
+                if (!isCmdOrCtrl && !isShift) {
+                    resetShortcut();
+                    return;
+                }
+            }
+
+            if (isCmdOrCtrl && e.shiftKey) {
+                state.shortcutCmdTaps++;
+
+                if (state.shortcutCmdTaps === 1) {
+                    // First tap - arm the shortcut
+                    armShortcut();
+                } else if (state.shortcutCmdTaps === 2) {
+                    // Second tap - toggle DevTools
+                    if (state.active) {
+                        deactivateDevTools();
+                    } else {
+                        activateDevTools(state.currentMode);
+                    }
+                    resetShortcut();
+                    // Keep counting for mode cycling (only if now active)
+                    if (state.active) {
+                        state.shortcutCmdTaps = 2;
+                    }
+                } else if (state.shortcutCmdTaps > 2 && state.active) {
+                    // Additional taps while active - cycle mode
+                    cycleMode();
+                }
+
+                e.preventDefault();
+            }
+        }
+
+        function handleKeyUp(e) {
+            // Reset shortcut when Shift is released
+            if (e.key === 'Shift') {
+                resetShortcut();
+            }
+        }
+
         // === Initialize ===
         function init() {
             initElements();
@@ -1848,6 +1995,10 @@
             });
 
             // Modifier keys (CMD/CTRL, SHIFT) are read from event properties directly
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
 
             // Configuration bar - feature checkboxes
             document.getElementById('hover-mode').addEventListener('change', (e) => {
