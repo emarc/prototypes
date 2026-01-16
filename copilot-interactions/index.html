@@ -1727,13 +1727,13 @@
             const menu = elements.componentContextMenu;
             const count = state.selectedComponents.length;
 
-            // Update header
+            // Update header - show component name for single, count for multiple
             if (count > 1) {
                 elements.contextMenuHeader.textContent = `${count} selected`;
-                elements.contextMenuHeader.classList.add('visible');
-            } else {
-                elements.contextMenuHeader.classList.remove('visible');
+            } else if (count === 1) {
+                elements.contextMenuHeader.textContent = getComponentDisplayName(state.selectedComponents[0]);
             }
+            elements.contextMenuHeader.classList.toggle('visible', count > 0);
 
             // Enable/disable "Go to source"
             const gotoItem = menu.querySelector('[data-action="goto-source"]');
