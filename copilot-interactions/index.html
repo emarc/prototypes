@@ -1049,6 +1049,24 @@
             filter: brightness(1.1);
         }
 
+        .walkthrough-login {
+            width: 100%;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .walkthrough-login svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .walkthrough-login.hidden {
+            display: none;
+        }
+
         /* === Status Tooltip === */
         .status-tooltip {
             position: fixed;
@@ -1243,6 +1261,7 @@
     <div class="walkthrough-popup" data-arrow="bottom">
         <h3 class="walkthrough-title"></h3>
         <p class="walkthrough-description"></p>
+        <button class="walkthrough-btn walkthrough-btn-primary walkthrough-login hidden"><i data-lucide="user"></i> Log in</button>
         <div class="walkthrough-footer">
             <div class="walkthrough-progress"></div>
             <div class="walkthrough-buttons">
@@ -1297,7 +1316,7 @@
         // === Application State ===
         const state = {
             active: false,
-            currentMode: 'edit',
+            currentMode: 'inspect',
             selectedComponents: [],
             hoverModeEnabled: false,
             contextMenuEnabled: true,
@@ -1330,22 +1349,33 @@
         // === Walkthrough Configuration ===
         const WALKTHROUGH_STEPS = [
             {
+                id: 'welcome',
+                target: '.devtools',
+                title: 'Welcome to Vaadin DevTools',
+                description: 'A powerful toolkit for inspecting, editing, and testing your Vaadin application. Let\'s take a quick tour!',
+                position: 'left'
+            },
+            {
+                id: 'modes',
                 target: '.mode-selector',
                 title: 'Switch Between Modes',
-                description: 'DevTools has three modes: Edit for making changes, Inspect for exploring components, and Test for recording interactions. Click any mode to switch.',
+                description: 'DevTools has three modes: Edit for making changes, Inspect for exploring components, and Test for recording interactions.',
                 position: 'top'
             },
             {
+                id: 'tools',
                 target: '.tool-icons',
                 title: 'Mode-Specific Tools',
                 description: 'Each mode has its own set of tools. Click any tool icon to open its panel. Panels can be moved, resized, and stay open as you work.',
                 position: 'top'
             },
             {
+                id: 'edit-mode',
                 target: '.mode-btn[data-mode="edit"]',
                 title: 'Edit Mode',
                 description: 'Edit mode lets you modify the UI directly. Select components, change properties, and see updates in real-time. Note: Editing requires a Vaadin subscription.',
-                position: 'top'
+                position: 'top',
+                showLoginButton: true
             }
         ];
 
@@ -1385,6 +1415,7 @@
             elements.walkthroughProgress = document.querySelector('.walkthrough-progress');
             elements.walkthroughSkip = document.querySelector('.walkthrough-skip');
             elements.walkthroughNext = document.querySelector('.walkthrough-next');
+            elements.walkthroughLogin = document.querySelector('.walkthrough-login');
         }
 
         // === Rendering ===
@@ -1717,6 +1748,11 @@
 
             if (state.active || state.hoverPreviewActive) {
                 activateDevTools(modeId);
+            }
+
+            // Show edit mode walkthrough if not logged in and selecting edit mode
+            if (modeId === 'edit' && !state.hasSubscription && state.active) {
+                showWalkthroughStepById('edit-mode');
             }
         }
 
@@ -2145,6 +2181,13 @@
             const isLastStep = stepIndex === WALKTHROUGH_STEPS.length - 1;
             elements.walkthroughNext.textContent = isLastStep ? 'Done' : 'Next';
 
+            // Show/hide login button based on step config and subscription state
+            const showLogin = step.showLoginButton && !state.hasSubscription;
+            elements.walkthroughLogin.classList.toggle('hidden', !showLogin);
+            if (showLogin) {
+                lucide.createIcons({ nodes: [elements.walkthroughLogin] });
+            }
+
             // Position spotlight on target
             const targetRect = targetEl.getBoundingClientRect();
             const padding = 8;
@@ -2222,6 +2265,15 @@
             elements.walkthroughOverlay.classList.remove('visible');
             elements.walkthroughSpotlight.classList.remove('visible');
             elements.walkthroughPopup.classList.remove('visible');
+        }
+
+        function showWalkthroughStepById(stepId) {
+            const stepIndex = WALKTHROUGH_STEPS.findIndex(s => s.id === stepId);
+            if (stepIndex !== -1) {
+                state.walkthroughActive = true;
+                state.walkthroughStep = stepIndex;
+                showWalkthroughStep(stepIndex);
+            }
         }
 
         // === Keyboard Shortcut ===
@@ -2507,6 +2559,12 @@
             elements.walkthroughSkip.addEventListener('click', endWalkthrough);
             elements.walkthroughNext.addEventListener('click', nextWalkthroughStep);
             elements.walkthroughOverlay.addEventListener('click', endWalkthrough);
+            elements.walkthroughLogin.addEventListener('click', () => {
+                state.hasSubscription = true;
+                document.getElementById('has-subscription').checked = true;
+                render();
+                endWalkthrough();
+            });
 
             // Initialize Lucide icons
             lucide.createIcons();
