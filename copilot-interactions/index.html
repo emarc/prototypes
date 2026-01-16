@@ -1238,9 +1238,13 @@
             // Show badge for last selected component
             const lastSelected = state.selectedComponents[state.selectedComponents.length - 1];
             const rect = lastSelected.getBoundingClientRect();
-            const name = getComponentDisplayName(lastSelected);
 
-            elements.selectionBadgeText.textContent = name;
+            // Show count if multiple selected, otherwise show component name
+            const text = state.selectedComponents.length > 1
+                ? `${state.selectedComponents.length} selected`
+                : getComponentDisplayName(lastSelected);
+
+            elements.selectionBadgeText.textContent = text;
             // Position at top-left, accounting for outline-offset (2px) and outline width (2px)
             elements.selectionBadge.style.left = (rect.left - 2) + 'px';
             elements.selectionBadge.style.top = (rect.top - 4) + 'px';
