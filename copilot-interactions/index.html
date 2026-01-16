@@ -35,9 +35,11 @@
 
         body {
             margin: 0;
+            padding: 40px 20px 20px;
             font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             background: #f0f2f5;
             min-height: 100vh;
+            box-sizing: border-box;
         }
 
         /* === Prototype Options Dropdown === */
@@ -125,9 +127,9 @@
 
         /* === App Container === */
         .app-container {
-            padding: 20px 20px 100px;
+            padding-bottom: 100px;
             max-width: 550px;
-            margin: 20px auto 0;
+            margin: 0 auto;
         }
 
         /* === Address Form === */
@@ -887,9 +889,16 @@
             position: relative;
         }
 
-        /* Edit Context Badge (positioned via JS) */
+        /* Edit Context Badge - positioned relative to edit-context element */
+        [data-file].edit-context > .edit-context-badge {
+            display: flex;
+        }
+
         .edit-context-badge {
-            position: fixed;
+            position: absolute;
+            top: -8px;
+            left: -6px;
+            transform: translateY(-100%);
             display: none;
             align-items: center;
             gap: 4px;
@@ -900,10 +909,7 @@
             font-size: 11px;
             font-family: monospace;
             z-index: 10001;
-        }
-
-        .edit-context-badge.visible {
-            display: flex;
+            white-space: nowrap;
         }
 
         .drill-up-icon {
@@ -1749,19 +1755,15 @@
                 el.classList.remove('edit-context');
             });
 
-            // Add to current context and position badge
+            // Add to current context and move badge into it
             if (state.editContext) {
                 const contextEl = document.querySelector(`[data-file="${state.editContext}"]`);
                 if (contextEl) {
                     contextEl.classList.add('edit-context');
 
-                    // Position and show badge
-                    const rect = contextEl.getBoundingClientRect();
-                    elements.editContextBadge.style.left = (rect.left + 8) + 'px';
-                    elements.editContextBadge.style.top = rect.top + 'px';
-                    elements.editContextBadge.style.transform = 'translateY(-50%)';
+                    // Move badge into the context element
+                    contextEl.appendChild(elements.editContextBadge);
                     elements.badgeText.textContent = state.editContext;
-                    elements.editContextBadge.classList.add('visible');
 
                     // Show drill-up icon only if not at root
                     if (state.editContext !== 'MainView.java') {
@@ -1770,8 +1772,6 @@
                         elements.drillUpIcon.classList.remove('visible');
                     }
                 }
-            } else {
-                elements.editContextBadge.classList.remove('visible');
             }
         }
 
@@ -2200,6 +2200,7 @@
             if (component && component.dataset.file !== state.editContext) {
                 state.editContext = component.dataset.file;
                 updateEditContext();
+                clearSelection();
                 event.preventDefault();
                 event.stopPropagation();
             }
