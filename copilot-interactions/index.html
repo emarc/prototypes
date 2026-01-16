@@ -895,6 +895,160 @@
             display: block;
         }
 
+        /* === Feature Walkthrough === */
+        .walkthrough-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            z-index: 10010;
+            display: none;
+        }
+
+        .walkthrough-overlay.visible {
+            display: block;
+        }
+
+        .walkthrough-spotlight {
+            position: fixed;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            z-index: 10011;
+            pointer-events: none;
+            transition: all 300ms ease;
+            display: none;
+        }
+
+        .walkthrough-spotlight.visible {
+            display: block;
+        }
+
+        .walkthrough-popup {
+            position: fixed;
+            background: var(--devtools-bg);
+            border-radius: 12px;
+            padding: 20px;
+            width: 320px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            z-index: 10012;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+        }
+
+        .walkthrough-popup.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .walkthrough-popup::before {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--devtools-bg);
+            transform: rotate(45deg);
+        }
+
+        .walkthrough-popup[data-arrow="top"]::before {
+            top: -6px;
+            left: 50%;
+            margin-left: -6px;
+        }
+
+        .walkthrough-popup[data-arrow="bottom"]::before {
+            bottom: -6px;
+            left: 50%;
+            margin-left: -6px;
+        }
+
+        .walkthrough-popup[data-arrow="left"]::before {
+            left: -6px;
+            top: 50%;
+            margin-top: -6px;
+        }
+
+        .walkthrough-popup[data-arrow="right"]::before {
+            right: -6px;
+            top: 50%;
+            margin-top: -6px;
+        }
+
+        .walkthrough-title {
+            color: var(--devtools-text);
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+
+        .walkthrough-description {
+            color: var(--devtools-text);
+            opacity: 0.8;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0 0 16px;
+        }
+
+        .walkthrough-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .walkthrough-progress {
+            display: flex;
+            gap: 6px;
+        }
+
+        .walkthrough-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.3);
+            transition: background var(--transition-speed);
+        }
+
+        .walkthrough-dot.active {
+            background: var(--devtools-primary);
+        }
+
+        .walkthrough-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .walkthrough-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            border: none;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .walkthrough-btn-secondary {
+            background: transparent;
+            color: var(--devtools-text);
+            opacity: 0.7;
+        }
+
+        .walkthrough-btn-secondary:hover {
+            opacity: 1;
+            background: var(--devtools-hover);
+        }
+
+        .walkthrough-btn-primary {
+            background: var(--devtools-primary);
+            color: var(--devtools-bg);
+        }
+
+        .walkthrough-btn-primary:hover {
+            filter: brightness(1.1);
+        }
+
         /* === Status Tooltip === */
         .status-tooltip {
             position: fixed;
@@ -1083,6 +1237,21 @@
     <!-- Status Tooltip -->
     <div class="status-tooltip"></div>
 
+    <!-- Feature Walkthrough -->
+    <div class="walkthrough-overlay"></div>
+    <div class="walkthrough-spotlight"></div>
+    <div class="walkthrough-popup" data-arrow="bottom">
+        <h3 class="walkthrough-title"></h3>
+        <p class="walkthrough-description"></p>
+        <div class="walkthrough-footer">
+            <div class="walkthrough-progress"></div>
+            <div class="walkthrough-buttons">
+                <button class="walkthrough-btn walkthrough-btn-secondary walkthrough-skip">Skip</button>
+                <button class="walkthrough-btn walkthrough-btn-primary walkthrough-next">Next</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         // === Mode Configuration ===
         const MODE_CONFIG = {
@@ -1149,10 +1318,36 @@
             // Shortcut state
             shortcutArmed: false,       // First CMD/CTRL tap registered
             shortcutCmdTaps: 0,         // Number of CMD/CTRL taps while shift held
+            // Walkthrough state
+            walkthroughShown: false,    // Has walkthrough been shown this session
+            walkthroughActive: false,   // Is walkthrough currently showing
+            walkthroughStep: 0,         // Current step index
         };
 
         // Mode order for cycling
         const MODE_ORDER = ['edit', 'inspect', 'test'];
+
+        // === Walkthrough Configuration ===
+        const WALKTHROUGH_STEPS = [
+            {
+                target: '.mode-selector',
+                title: 'Switch Between Modes',
+                description: 'DevTools has three modes: Edit for making changes, Inspect for exploring components, and Test for recording interactions. Click any mode to switch.',
+                position: 'top'
+            },
+            {
+                target: '.tool-icons',
+                title: 'Mode-Specific Tools',
+                description: 'Each mode has its own set of tools. Click any tool icon to open its panel. Panels can be moved, resized, and stay open as you work.',
+                position: 'top'
+            },
+            {
+                target: '.mode-btn[data-mode="edit"]',
+                title: 'Edit Mode',
+                description: 'Edit mode lets you modify the UI directly. Select components, change properties, and see updates in real-time. Note: Editing requires a Vaadin subscription.',
+                position: 'top'
+            }
+        ];
 
         // === DOM References ===
         const elements = {};
@@ -1182,6 +1377,14 @@
             elements.statusTooltip = document.querySelector('.status-tooltip');
             elements.toolbarLoginBtn = document.querySelector('.toolbar-login-btn');
             elements.menuLoginItem = document.getElementById('menu-login-item');
+            elements.walkthroughOverlay = document.querySelector('.walkthrough-overlay');
+            elements.walkthroughSpotlight = document.querySelector('.walkthrough-spotlight');
+            elements.walkthroughPopup = document.querySelector('.walkthrough-popup');
+            elements.walkthroughTitle = document.querySelector('.walkthrough-title');
+            elements.walkthroughDescription = document.querySelector('.walkthrough-description');
+            elements.walkthroughProgress = document.querySelector('.walkthrough-progress');
+            elements.walkthroughSkip = document.querySelector('.walkthrough-skip');
+            elements.walkthroughNext = document.querySelector('.walkthrough-next');
         }
 
         // === Rendering ===
@@ -1273,6 +1476,12 @@
             updateToolButtonStates();
 
             render();
+
+            // Start walkthrough on first activation
+            if (!state.walkthroughShown) {
+                // Small delay to let the toolbar animation complete
+                setTimeout(startWalkthrough, 300);
+            }
         }
 
         function deactivateDevTools() {
@@ -1900,6 +2109,121 @@
             showComponentContextMenu(event.clientX, event.clientY);
         }
 
+        // === Feature Walkthrough ===
+        function startWalkthrough() {
+            if (state.walkthroughShown) return;
+            state.walkthroughShown = true;
+            state.walkthroughActive = true;
+            state.walkthroughStep = 0;
+            showWalkthroughStep(0);
+        }
+
+        function showWalkthroughStep(stepIndex) {
+            const step = WALKTHROUGH_STEPS[stepIndex];
+            if (!step) {
+                endWalkthrough();
+                return;
+            }
+
+            const targetEl = document.querySelector(step.target);
+            if (!targetEl) {
+                // Skip to next step if target not found
+                nextWalkthroughStep();
+                return;
+            }
+
+            // Update content
+            elements.walkthroughTitle.textContent = step.title;
+            elements.walkthroughDescription.textContent = step.description;
+
+            // Update progress dots
+            elements.walkthroughProgress.innerHTML = WALKTHROUGH_STEPS.map((_, i) =>
+                `<div class="walkthrough-dot ${i === stepIndex ? 'active' : ''}"></div>`
+            ).join('');
+
+            // Update button text
+            const isLastStep = stepIndex === WALKTHROUGH_STEPS.length - 1;
+            elements.walkthroughNext.textContent = isLastStep ? 'Done' : 'Next';
+
+            // Position spotlight on target
+            const targetRect = targetEl.getBoundingClientRect();
+            const padding = 8;
+            elements.walkthroughSpotlight.style.left = (targetRect.left - padding) + 'px';
+            elements.walkthroughSpotlight.style.top = (targetRect.top - padding) + 'px';
+            elements.walkthroughSpotlight.style.width = (targetRect.width + padding * 2) + 'px';
+            elements.walkthroughSpotlight.style.height = (targetRect.height + padding * 2) + 'px';
+
+            // Position popup relative to target
+            positionWalkthroughPopup(targetRect, step.position);
+
+            // Show elements
+            elements.walkthroughOverlay.classList.add('visible');
+            elements.walkthroughSpotlight.classList.add('visible');
+            elements.walkthroughPopup.classList.add('visible');
+        }
+
+        function positionWalkthroughPopup(targetRect, position) {
+            const popup = elements.walkthroughPopup;
+            const popupWidth = 320;
+            const popupHeight = popup.offsetHeight || 180;
+            const gap = 16;
+
+            let left, top;
+            let arrow = position;
+
+            switch (position) {
+                case 'top':
+                    left = targetRect.left + (targetRect.width / 2) - (popupWidth / 2);
+                    top = targetRect.top - popupHeight - gap;
+                    arrow = 'bottom';
+                    break;
+                case 'bottom':
+                    left = targetRect.left + (targetRect.width / 2) - (popupWidth / 2);
+                    top = targetRect.bottom + gap;
+                    arrow = 'top';
+                    break;
+                case 'left':
+                    left = targetRect.left - popupWidth - gap;
+                    top = targetRect.top + (targetRect.height / 2) - (popupHeight / 2);
+                    arrow = 'right';
+                    break;
+                case 'right':
+                    left = targetRect.right + gap;
+                    top = targetRect.top + (targetRect.height / 2) - (popupHeight / 2);
+                    arrow = 'left';
+                    break;
+                default:
+                    left = targetRect.left + (targetRect.width / 2) - (popupWidth / 2);
+                    top = targetRect.top - popupHeight - gap;
+                    arrow = 'bottom';
+            }
+
+            // Keep popup within viewport
+            const margin = 16;
+            left = Math.max(margin, Math.min(left, window.innerWidth - popupWidth - margin));
+            top = Math.max(margin, Math.min(top, window.innerHeight - popupHeight - margin));
+
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+            popup.dataset.arrow = arrow;
+        }
+
+        function nextWalkthroughStep() {
+            state.walkthroughStep++;
+            if (state.walkthroughStep >= WALKTHROUGH_STEPS.length) {
+                endWalkthrough();
+            } else {
+                showWalkthroughStep(state.walkthroughStep);
+            }
+        }
+
+        function endWalkthrough() {
+            state.walkthroughActive = false;
+            elements.walkthroughOverlay.classList.remove('visible');
+            elements.walkthroughSpotlight.classList.remove('visible');
+            elements.walkthroughPopup.classList.remove('visible');
+        }
+
         // === Keyboard Shortcut ===
         function resetShortcut() {
             state.shortcutArmed = false;
@@ -2178,6 +2502,11 @@
                 const rect = elements.selectionBadgeMenu.getBoundingClientRect();
                 showComponentContextMenu(rect.left, rect.bottom + 4);
             });
+
+            // Walkthrough buttons
+            elements.walkthroughSkip.addEventListener('click', endWalkthrough);
+            elements.walkthroughNext.addEventListener('click', nextWalkthroughStep);
+            elements.walkthroughOverlay.addEventListener('click', endWalkthrough);
 
             // Initialize Lucide icons
             lucide.createIcons();
