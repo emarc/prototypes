@@ -40,37 +40,79 @@
             min-height: 100vh;
         }
 
-        /* === Configuration Bar === */
-        .config-bar {
+        /* === Prototype Options Dropdown === */
+        .prototype-options {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 44px;
-            background: #2d2d2d;
-            color: white;
+            top: 12px;
+            left: 12px;
+            z-index: 9999;
+        }
+
+        .prototype-options-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            border: none;
+            background: #4a4a4a;
+            color: #ff6b6b;
+            cursor: pointer;
             display: flex;
             align-items: center;
-            padding: 0 16px;
-            gap: 16px;
-            z-index: 9999;
-            font-size: 13px;
+            justify-content: center;
+            transition: all var(--transition-speed);
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        .config-label {
+        .prototype-options-btn:hover {
+            background: #5a5a5a;
+            transform: scale(1.05);
+        }
+
+        .prototype-options-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .prototype-options-menu {
+            position: absolute;
+            top: 48px;
+            left: 0;
+            background: #2d2d2d;
+            border-radius: 8px;
+            padding: 8px;
+            min-width: 200px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all var(--transition-speed);
+        }
+
+        .prototype-options-menu.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .prototype-options-menu .config-label {
             font-weight: 500;
-            color: #aaa;
+            color: #888;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px 4px;
         }
 
         .feature-option {
             display: flex;
             align-items: center;
-            gap: 6px;
+            gap: 8px;
             cursor: pointer;
-            padding: 4px 8px;
-            border-radius: 4px;
+            padding: 8px 12px;
+            border-radius: 6px;
             transition: background var(--transition-speed);
+            color: white;
+            font-size: 13px;
         }
 
         .feature-option:hover {
@@ -85,7 +127,7 @@
         .app-container {
             padding: 20px 20px 100px;
             max-width: 550px;
-            margin: 50px auto 0;
+            margin: 20px auto 0;
         }
 
         /* === Address Form === */
@@ -1094,38 +1136,43 @@
     </style>
 </head>
 <body>
-    <!-- Configuration Bar -->
-    <header class="config-bar">
-        <span class="config-label">Prototype options:</span>
-        <label class="feature-option">
-            <input type="checkbox" id="hover-mode">
-            <span>Hover mode</span>
-        </label>
-        <label class="feature-option">
-            <input type="checkbox" id="context-menu" checked>
-            <span>Context menu</span>
-        </label>
-        <label class="feature-option">
-            <input type="checkbox" id="global-toolbar">
-            <span>Global toolbar</span>
-        </label>
-        <label class="feature-option">
-            <input type="checkbox" id="pierce-by-default">
-            <span>Pierce by default</span>
-        </label>
-        <label class="feature-option">
-            <input type="checkbox" id="ephemeral-panels">
-            <span>Ephemeral panels</span>
-        </label>
-        <label class="feature-option">
-            <input type="checkbox" id="immediate-mode">
-            <span>Immediate</span>
-        </label>
-        <label class="feature-option">
-            <input type="checkbox" id="has-subscription">
-            <span>Has subscription</span>
-        </label>
-    </header>
+    <!-- Prototype Options Dropdown -->
+    <div class="prototype-options">
+        <button class="prototype-options-btn" title="Prototype Options">
+            <i data-lucide="flask-conical"></i>
+        </button>
+        <div class="prototype-options-menu">
+            <span class="config-label">Prototype options</span>
+            <label class="feature-option">
+                <input type="checkbox" id="hover-mode">
+                <span>Hover mode</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="context-menu" checked>
+                <span>Context menu</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="global-toolbar">
+                <span>Global toolbar</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="pierce-by-default">
+                <span>Pierce by default</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="ephemeral-panels">
+                <span>Ephemeral panels</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="immediate-mode">
+                <span>Immediate</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="has-subscription">
+                <span>Has subscription</span>
+            </label>
+        </div>
+    </div>
 
     <!-- App Container -->
     <main class="app-container" data-file="MainView.java">
@@ -1329,6 +1376,7 @@
             hasSubscription: false,
             toolbarExpanded: false,
             globalMenuOpen: false,
+            prototypeOptionsOpen: false,
             componentContextMenuOpen: false,
             hoverPreviewActive: false,
             editContext: null,
@@ -1420,6 +1468,8 @@
             elements.walkthroughNext = document.querySelector('.walkthrough-next');
             elements.walkthroughLogin = document.querySelector('.walkthrough-login');
             elements.menuWalkthroughItem = document.getElementById('menu-walkthrough-item');
+            elements.prototypeOptionsBtn = document.querySelector('.prototype-options-btn');
+            elements.prototypeOptionsMenu = document.querySelector('.prototype-options-menu');
         }
 
         // === Rendering ===
@@ -2454,6 +2504,13 @@
 
             // Click outside to close menus
             document.addEventListener('click', (e) => {
+                // Close prototype options menu
+                if (state.prototypeOptionsOpen &&
+                    !e.target.closest('.prototype-options')) {
+                    state.prototypeOptionsOpen = false;
+                    elements.prototypeOptionsMenu.classList.remove('visible');
+                }
+
                 if (state.globalMenuOpen &&
                     !e.target.closest('.global-menu') &&
                     !e.target.closest('.global-menu-btn')) {
@@ -2506,7 +2563,14 @@
             document.addEventListener('keydown', handleKeyDown);
             document.addEventListener('keyup', handleKeyUp);
 
-            // Configuration bar - feature checkboxes
+            // Prototype options dropdown
+            elements.prototypeOptionsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                state.prototypeOptionsOpen = !state.prototypeOptionsOpen;
+                elements.prototypeOptionsMenu.classList.toggle('visible', state.prototypeOptionsOpen);
+            });
+
+            // Configuration checkboxes
             document.getElementById('hover-mode').addEventListener('change', (e) => {
                 handleHoverModeChange(e.target.checked);
             });
