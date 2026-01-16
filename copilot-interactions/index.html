@@ -441,6 +441,36 @@
             animation: arming-wiggle 150ms ease-in-out;
         }
 
+        /* === Toolbar Login Button === */
+        .toolbar-login-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: transparent;
+            color: var(--devtools-text);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+            opacity: 0.7;
+        }
+
+        .toolbar-login-btn:hover {
+            background: var(--devtools-hover);
+            opacity: 1;
+        }
+
+        .toolbar-login-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .toolbar-login-btn.hidden {
+            display: none;
+        }
+
         /* Keep outline style when hovering in preview mode */
         .devtools[data-preview="true"] .activation-btn:hover {
             background: var(--devtools-bg);
@@ -470,7 +500,8 @@
         }
 
         /* Hide tools in hover preview mode */
-        .toolbar[data-preview="true"] .tool-icons {
+        .toolbar[data-preview="true"] .tool-icons,
+        .toolbar[data-preview="true"] .toolbar-login-btn {
             display: none;
         }
 
@@ -917,6 +948,10 @@
             <input type="checkbox" id="immediate-mode">
             <span>Immediate</span>
         </label>
+        <label class="feature-option">
+            <input type="checkbox" id="has-subscription">
+            <span>Has subscription</span>
+        </label>
     </header>
 
     <!-- App Container -->
@@ -986,12 +1021,16 @@
                     <i data-lucide="more-vertical"></i>
                 </button>
             </div>
+
+            <button class="toolbar-login-btn" title="Log in">
+                <i data-lucide="user"></i>
+            </button>
         </div>
 
         <!-- Global menu moved outside toolbar so it can appear on right-click -->
         <div class="global-menu" data-open="false">
-            <button class="menu-item"><i data-lucide="log-in"></i> Log in to Vaadin</button>
-            <button class="menu-item"><i data-lucide="user"></i> Impersonate app user</button>
+            <button class="menu-item" id="menu-login-item"><i data-lucide="user"></i> <span>Log in</span></button>
+            <button class="menu-item"><i data-lucide="user-check"></i> Impersonate app user</button>
             <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
             <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
         </div>
@@ -1097,6 +1136,7 @@
             pierceByDefault: false,
             ephemeralPanels: false,
             immediateMode: false,
+            hasSubscription: false,
             toolbarExpanded: false,
             globalMenuOpen: false,
             componentContextMenuOpen: false,
@@ -1140,6 +1180,8 @@
             elements.componentContextMenu = document.querySelector('.component-context-menu');
             elements.contextMenuHeader = document.querySelector('.context-menu-header');
             elements.statusTooltip = document.querySelector('.status-tooltip');
+            elements.toolbarLoginBtn = document.querySelector('.toolbar-login-btn');
+            elements.menuLoginItem = document.getElementById('menu-login-item');
         }
 
         // === Rendering ===
@@ -1160,6 +1202,28 @@
             document.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.dataset.active = btn.dataset.mode === state.currentMode;
             });
+
+            // Update login/subscription UI
+            elements.toolbarLoginBtn.classList.toggle('hidden', state.hasSubscription);
+            if (state.hasSubscription) {
+                elements.menuLoginItem.innerHTML = '<i data-lucide="user"></i> <span>John Doe</span>';
+                // Use a filled circle behind the user icon to simulate "solid"
+                lucide.createIcons({ nodes: [elements.menuLoginItem] });
+                // Add a style to make it appear solid
+                const icon = elements.menuLoginItem.querySelector('svg');
+                if (icon) {
+                    icon.style.fill = 'currentColor';
+                    icon.style.fillOpacity = '0.3';
+                }
+            } else {
+                elements.menuLoginItem.innerHTML = '<i data-lucide="user"></i> <span>Log in</span>';
+                lucide.createIcons({ nodes: [elements.menuLoginItem] });
+                const icon = elements.menuLoginItem.querySelector('svg');
+                if (icon) {
+                    icon.style.fill = 'none';
+                    icon.style.fillOpacity = '';
+                }
+            }
         }
 
         function renderTools(tools) {
@@ -1956,10 +2020,23 @@
             console.log('Global menu btn found:', elements.globalMenuBtn);
             elements.globalMenuBtn.addEventListener('click', handleGlobalMenuToggle);
 
+            // Toolbar login button - clicking logs in (enables subscription)
+            elements.toolbarLoginBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                state.hasSubscription = true;
+                document.getElementById('has-subscription').checked = true;
+                render();
+            });
+
             // Global menu items
             document.querySelectorAll('.menu-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    // Handle login item specially
+                    if (item.id === 'menu-login-item' && !state.hasSubscription) {
+                        state.hasSubscription = true;
+                        document.getElementById('has-subscription').checked = true;
+                    }
                     console.log('Menu item clicked:', item.textContent.trim());
                     state.globalMenuOpen = false;
                     render();
@@ -2042,6 +2119,10 @@
             document.getElementById('immediate-mode').addEventListener('change', (e) => {
                 state.immediateMode = e.target.checked;
                 document.documentElement.classList.toggle('immediate-mode', e.target.checked);
+            });
+            document.getElementById('has-subscription').addEventListener('change', (e) => {
+                state.hasSubscription = e.target.checked;
+                render();
             });
 
             // Global toolbar buttons (stub handlers)
