@@ -1204,6 +1204,7 @@
             <button class="menu-item" id="menu-login-item"><i data-lucide="user"></i> <span>Log in</span></button>
             <button class="menu-item"><i data-lucide="user-check"></i> Impersonate app user</button>
             <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
+            <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>Feature Walkthrough (0/4)</span></button>
             <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
         </div>
     </div>
@@ -1341,6 +1342,7 @@
             walkthroughShown: false,    // Has walkthrough been shown this session
             walkthroughActive: false,   // Is walkthrough currently showing
             walkthroughStep: 0,         // Current step index
+            walkthroughStepsSeen: 0,    // Number of steps user has seen (1-indexed for display)
         };
 
         // Mode order for cycling
@@ -1416,6 +1418,7 @@
             elements.walkthroughSkip = document.querySelector('.walkthrough-skip');
             elements.walkthroughNext = document.querySelector('.walkthrough-next');
             elements.walkthroughLogin = document.querySelector('.walkthrough-login');
+            elements.menuWalkthroughItem = document.getElementById('menu-walkthrough-item');
         }
 
         // === Rendering ===
@@ -1457,6 +1460,12 @@
                     icon.style.fill = 'none';
                     icon.style.fillOpacity = '';
                 }
+            }
+
+            // Update walkthrough menu item progress
+            const walkthroughSpan = elements.menuWalkthroughItem.querySelector('span');
+            if (walkthroughSpan) {
+                walkthroughSpan.textContent = `Feature Walkthrough (${state.walkthroughStepsSeen}/${WALKTHROUGH_STEPS.length})`;
             }
         }
 
@@ -2154,6 +2163,18 @@
             showWalkthroughStep(0);
         }
 
+        function resumeOrRestartWalkthrough() {
+            state.walkthroughActive = true;
+            // If user has seen all steps, start from beginning
+            // Otherwise, continue from where they left off
+            if (state.walkthroughStepsSeen >= WALKTHROUGH_STEPS.length) {
+                state.walkthroughStep = 0;
+            } else {
+                state.walkthroughStep = state.walkthroughStepsSeen;
+            }
+            showWalkthroughStep(state.walkthroughStep);
+        }
+
         function showWalkthroughStep(stepIndex) {
             const step = WALKTHROUGH_STEPS[stepIndex];
             if (!step) {
@@ -2166,6 +2187,13 @@
                 // Skip to next step if target not found
                 nextWalkthroughStep();
                 return;
+            }
+
+            // Track steps seen (stepIndex is 0-based, stepsSeen is count)
+            const stepNumber = stepIndex + 1;
+            if (stepNumber > state.walkthroughStepsSeen) {
+                state.walkthroughStepsSeen = stepNumber;
+                render(); // Update menu item
             }
 
             // Update content
@@ -2412,6 +2440,10 @@
                     if (item.id === 'menu-login-item' && !state.hasSubscription) {
                         state.hasSubscription = true;
                         document.getElementById('has-subscription').checked = true;
+                    }
+                    // Handle walkthrough item
+                    if (item.id === 'menu-walkthrough-item') {
+                        resumeOrRestartWalkthrough();
                     }
                     console.log('Menu item clicked:', item.textContent.trim());
                     state.globalMenuOpen = false;
