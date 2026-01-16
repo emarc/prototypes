@@ -205,18 +205,45 @@
         .selection-badge {
             position: fixed;
             display: none;
+            align-items: center;
+            gap: 2px;
             background: var(--devtools-primary);
             color: white;
-            padding: 2px 6px;
+            padding: 2px 4px 2px 6px;
             border-radius: 3px;
             font-size: 11px;
             font-weight: 500;
             z-index: 9999;
-            pointer-events: none;
         }
 
         .selection-badge.visible {
-            display: block;
+            display: flex;
+        }
+
+        .selection-badge-text {
+            pointer-events: none;
+        }
+
+        .selection-badge-menu {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 100ms, background 100ms;
+        }
+
+        .selection-badge-menu:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .selection-badge-menu svg {
+            width: 14px;
+            height: 14px;
         }
 
         /* === Component Context Menu === */
@@ -899,7 +926,10 @@
     </div>
 
     <!-- Selection Badge -->
-    <div class="selection-badge"></div>
+    <div class="selection-badge">
+        <span class="selection-badge-text"></span>
+        <span class="selection-badge-menu"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span>
+    </div>
 
     <!-- Component Context Menu -->
     <div class="component-context-menu">
@@ -1006,6 +1036,8 @@
             elements.drillUpIcon = document.querySelector('.drill-up-icon');
             elements.toolPanelsContainer = document.querySelector('.tool-panels-container');
             elements.selectionBadge = document.querySelector('.selection-badge');
+            elements.selectionBadgeText = document.querySelector('.selection-badge-text');
+            elements.selectionBadgeMenu = document.querySelector('.selection-badge-menu');
             elements.componentContextMenu = document.querySelector('.component-context-menu');
             elements.contextMenuHeader = document.querySelector('.context-menu-header');
             elements.statusTooltip = document.querySelector('.status-tooltip');
@@ -1182,7 +1214,7 @@
             const rect = lastSelected.getBoundingClientRect();
             const name = getComponentDisplayName(lastSelected);
 
-            elements.selectionBadge.textContent = name;
+            elements.selectionBadgeText.textContent = name;
             // Position at top-left, accounting for outline-offset (2px) and outline width (2px)
             elements.selectionBadge.style.left = (rect.left - 2) + 'px';
             elements.selectionBadge.style.top = (rect.top - 4) + 'px';
@@ -1847,6 +1879,14 @@
                     console.log('Context menu action:', action, state.selectedComponents);
                     hideComponentContextMenu();
                 });
+            });
+
+            // Selection badge menu icon click - opens context menu
+            elements.selectionBadgeMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (state.selectedComponents.length === 0) return;
+                const rect = elements.selectionBadgeMenu.getBoundingClientRect();
+                showComponentContextMenu(rect.left, rect.bottom + 4);
             });
 
             // Initialize Lucide icons
