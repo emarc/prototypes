@@ -224,6 +224,28 @@
             pointer-events: none;
         }
 
+        .selection-badge-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 16px;
+            height: 16px;
+            border-radius: 2px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 100ms, background 100ms;
+        }
+
+        .selection-badge-action:hover {
+            opacity: 1;
+            background: rgba(0, 0, 0, 0.2);
+        }
+
+        .selection-badge-action svg {
+            width: 12px;
+            height: 12px;
+        }
+
         .selection-badge-menu {
             display: flex;
             align-items: center;
@@ -928,6 +950,10 @@
     <!-- Selection Badge -->
     <div class="selection-badge">
         <span class="selection-badge-text"></span>
+        <span class="selection-badge-action" title="Vertical sizing"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><path d="m8 7 4-4 4 4"></path><path d="m8 17 4 4 4-4"></path></svg></span>
+        <span class="selection-badge-action" title="Horizontal sizing"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"></path><path d="m7 8-4 4 4 4"></path><path d="m17 8 4 4-4 4"></path></svg></span>
+        <span class="selection-badge-action" title="Vertical alignment"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><rect x="7" y="9" width="10" height="6" rx="1"></rect></svg></span>
+        <span class="selection-badge-action" title="Horizontal alignment"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"></path><rect x="9" y="7" width="6" height="10" rx="1"></rect></svg></span>
         <span class="selection-badge-menu"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span>
     </div>
 
@@ -1878,6 +1904,14 @@
                     const action = item.dataset.action;
                     console.log('Context menu action:', action, state.selectedComponents);
                     hideComponentContextMenu();
+                });
+            });
+
+            // Selection badge action icons - do nothing on click
+            document.querySelectorAll('.selection-badge-action').forEach(action => {
+                action.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('Badge action clicked:', action.title);
                 });
             });
 
