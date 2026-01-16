@@ -19,6 +19,15 @@
             --selection-border: rgba(0, 180, 240, 0.8);
         }
 
+        /* === Immediate Mode (no animations) === */
+        :root.immediate-mode {
+            --transition-speed: 0ms;
+        }
+
+        :root.immediate-mode * {
+            transition-duration: 0ms !important;
+        }
+
         /* === Reset & Base === */
         *, *::before, *::after {
             box-sizing: border-box;
@@ -685,6 +694,10 @@
             <input type="checkbox" id="ephemeral-panels">
             <span>Ephemeral panels</span>
         </label>
+        <label class="feature-option">
+            <input type="checkbox" id="immediate-mode">
+            <span>Immediate</span>
+        </label>
     </header>
 
     <!-- App Container -->
@@ -834,6 +847,7 @@
             globalToolbarEnabled: false,
             pierceByDefault: false,
             ephemeralPanels: false,
+            immediateMode: false,
             toolbarExpanded: false,
             globalMenuOpen: false,
             hoverPreviewActive: false,
@@ -1554,6 +1568,10 @@
                 state.ephemeralPanels = e.target.checked;
                 // Close all panels when switching modes
                 state.openPanels.forEach(toolId => closePanel(toolId));
+            });
+            document.getElementById('immediate-mode').addEventListener('change', (e) => {
+                state.immediateMode = e.target.checked;
+                document.documentElement.classList.toggle('immediate-mode', e.target.checked);
             });
 
             // Global toolbar buttons (stub handlers)
