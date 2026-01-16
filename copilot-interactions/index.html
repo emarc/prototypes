@@ -201,6 +201,24 @@
             outline-offset: 2px;
         }
 
+        /* Selection Badge */
+        .selection-badge {
+            position: fixed;
+            display: none;
+            background: var(--devtools-primary);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: 500;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .selection-badge.visible {
+            display: block;
+        }
+
         /* === DevTools Container === */
         .devtools {
             position: fixed;
@@ -795,6 +813,9 @@
         <span class="badge-text"></span>
     </div>
 
+    <!-- Selection Badge -->
+    <div class="selection-badge"></div>
+
     <script>
         // === Mode Configuration ===
         const MODE_CONFIG = {
@@ -878,6 +899,7 @@
             elements.badgeText = document.querySelector('.badge-text');
             elements.drillUpIcon = document.querySelector('.drill-up-icon');
             elements.toolPanelsContainer = document.querySelector('.tool-panels-container');
+            elements.selectionBadge = document.querySelector('.selection-badge');
         }
 
         // === Rendering ===
@@ -993,6 +1015,7 @@
 
             element.classList.add('selected');
             state.selectedComponents.push(element);
+            updateSelectionBadge();
 
             const componentType = element.dataset.component;
             console.log('Selected:', componentType, element);
@@ -1001,6 +1024,37 @@
         function clearSelection() {
             state.selectedComponents.forEach(el => el.classList.remove('selected'));
             state.selectedComponents = [];
+            updateSelectionBadge();
+        }
+
+        function getComponentDisplayName(element) {
+            // If element has data-file, use filename without extension
+            if (element.dataset.file) {
+                return element.dataset.file.replace(/\.\w+$/, '');
+            }
+            // Convert data-component to PascalCase: "text-field" → "TextField"
+            const type = element.dataset.component || 'Component';
+            return type.split('-').map(word =>
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join('');
+        }
+
+        function updateSelectionBadge() {
+            if (state.selectedComponents.length === 0) {
+                elements.selectionBadge.classList.remove('visible');
+                return;
+            }
+            // Show badge for last selected component
+            const lastSelected = state.selectedComponents[state.selectedComponents.length - 1];
+            const rect = lastSelected.getBoundingClientRect();
+            const name = getComponentDisplayName(lastSelected);
+
+            elements.selectionBadge.textContent = name;
+            // Position at top-left, accounting for outline-offset (2px) and outline width (2px)
+            elements.selectionBadge.style.left = (rect.left - 2) + 'px';
+            elements.selectionBadge.style.top = (rect.top - 4) + 'px';
+            elements.selectionBadge.style.transform = 'translateY(-100%)';
+            elements.selectionBadge.classList.add('visible');
         }
 
         function highlightComponent(element, drillableFile = null) {
