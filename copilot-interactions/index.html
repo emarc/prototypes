@@ -219,6 +219,68 @@
             display: block;
         }
 
+        /* === Component Context Menu === */
+        .component-context-menu {
+            position: fixed;
+            display: none;
+            background: var(--devtools-bg);
+            border-radius: 8px;
+            padding: 6px;
+            min-width: 160px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 10003;
+        }
+
+        .component-context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-header {
+            display: none;
+            padding: 8px 12px;
+            color: var(--devtools-text);
+            font-size: 12px;
+            opacity: 0.6;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            margin-bottom: 4px;
+        }
+
+        .context-menu-header.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            color: var(--devtools-text);
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 6px;
+            transition: background var(--transition-speed);
+            text-align: left;
+        }
+
+        .context-menu-item:hover {
+            background: var(--devtools-hover);
+        }
+
+        .context-menu-item.disabled {
+            opacity: 0.4;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .context-menu-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
         /* === DevTools Container === */
         .devtools {
             position: fixed;
@@ -816,6 +878,23 @@
     <!-- Selection Badge -->
     <div class="selection-badge"></div>
 
+    <!-- Component Context Menu -->
+    <div class="component-context-menu">
+        <div class="context-menu-header"></div>
+        <button class="context-menu-item" data-action="goto-source">
+            <i data-lucide="file-code"></i> Go to source
+        </button>
+        <button class="context-menu-item" data-action="copy">
+            <i data-lucide="copy"></i> Copy
+        </button>
+        <button class="context-menu-item" data-action="cut">
+            <i data-lucide="scissors"></i> Cut
+        </button>
+        <button class="context-menu-item" data-action="duplicate">
+            <i data-lucide="copy-plus"></i> Duplicate
+        </button>
+    </div>
+
     <script>
         // === Mode Configuration ===
         const MODE_CONFIG = {
@@ -871,6 +950,7 @@
             immediateMode: false,
             toolbarExpanded: false,
             globalMenuOpen: false,
+            componentContextMenuOpen: false,
             hoverPreviewActive: false,
             editContext: null,
             openPanels: new Set(),  // Set of tool IDs that are open
@@ -900,6 +980,8 @@
             elements.drillUpIcon = document.querySelector('.drill-up-icon');
             elements.toolPanelsContainer = document.querySelector('.tool-panels-container');
             elements.selectionBadge = document.querySelector('.selection-badge');
+            elements.componentContextMenu = document.querySelector('.component-context-menu');
+            elements.contextMenuHeader = document.querySelector('.context-menu-header');
         }
 
         // === Rendering ===
@@ -1524,6 +1606,46 @@
             render();
         }
 
+        function showComponentContextMenu(x, y) {
+            const menu = elements.componentContextMenu;
+            const count = state.selectedComponents.length;
+
+            // Update header
+            if (count > 1) {
+                elements.contextMenuHeader.textContent = `${count} selected`;
+                elements.contextMenuHeader.classList.add('visible');
+            } else {
+                elements.contextMenuHeader.classList.remove('visible');
+            }
+
+            // Enable/disable "Go to source"
+            const gotoItem = menu.querySelector('[data-action="goto-source"]');
+            gotoItem.classList.toggle('disabled', count > 1);
+
+            // Position menu
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.classList.add('visible');
+            state.componentContextMenuOpen = true;
+
+            // Initialize icons
+            lucide.createIcons({ nodes: [menu] });
+        }
+
+        function hideComponentContextMenu() {
+            elements.componentContextMenu.classList.remove('visible');
+            state.componentContextMenuOpen = false;
+        }
+
+        function handleOverlayContextMenu(event) {
+            event.preventDefault();
+
+            // Only show if there are selected components
+            if (state.selectedComponents.length === 0) return;
+
+            showComponentContextMenu(event.clientX, event.clientY);
+        }
+
         // === Initialize ===
         function init() {
             initElements();
@@ -1560,13 +1682,18 @@
                 });
             });
 
-            // Click outside to close menu
+            // Click outside to close menus
             document.addEventListener('click', (e) => {
                 if (state.globalMenuOpen &&
                     !e.target.closest('.global-menu') &&
                     !e.target.closest('.global-menu-btn')) {
                     state.globalMenuOpen = false;
                     render();
+                }
+
+                // Close component context menu when clicking outside
+                if (state.componentContextMenuOpen && !e.target.closest('.component-context-menu')) {
+                    hideComponentContextMenu();
                 }
 
                 // Close ephemeral panels when clicking outside
@@ -1584,6 +1711,7 @@
             elements.selectionOverlay.addEventListener('mousemove', handleOverlayHover);
             elements.selectionOverlay.addEventListener('dblclick', handleOverlayDblClick);
             elements.selectionOverlay.addEventListener('mouseleave', hideHighlight);
+            elements.selectionOverlay.addEventListener('contextmenu', handleOverlayContextMenu);
 
             // Highlight label - keep highlight visible when hovering, drill on click
             elements.highlightLabel.addEventListener('mouseenter', () => {
@@ -1654,6 +1782,16 @@
                 }
                 updateEditContext();
                 clearSelection();
+            });
+
+            // Component context menu item clicks
+            elements.componentContextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = item.dataset.action;
+                    console.log('Context menu action:', action, state.selectedComponents);
+                    hideComponentContextMenu();
+                });
             });
 
             // Initialize Lucide icons
