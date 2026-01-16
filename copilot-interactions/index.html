@@ -706,6 +706,31 @@
             opacity: 1;
         }
 
+        .tool-panel-pin {
+            background: none;
+            border: none;
+            color: var(--devtools-text);
+            opacity: 0.5;
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-panel-pin:hover {
+            opacity: 1;
+        }
+
+        .tool-panel-pin.visible {
+            display: flex;
+        }
+
+        .tool-panel-pin.pinned {
+            opacity: 1;
+            color: var(--devtools-primary);
+        }
+
         .tool-panel-content {
             padding: 16px;
             color: var(--devtools-text);
@@ -1160,7 +1185,7 @@
                 <span>Pierce by default</span>
             </label>
             <label class="feature-option">
-                <input type="checkbox" id="ephemeral-panels">
+                <input type="checkbox" id="ephemeral-panels" checked>
                 <span>Ephemeral panels</span>
             </label>
             <label class="feature-option">
@@ -1371,7 +1396,7 @@
             contextMenuEnabled: true,
             globalToolbarEnabled: false,
             pierceByDefault: false,
-            ephemeralPanels: false,
+            ephemeralPanels: true,
             immediateMode: false,
             hasSubscription: false,
             toolbarExpanded: false,
@@ -1381,6 +1406,7 @@
             hoverPreviewActive: false,
             editContext: null,
             openPanels: new Set(),  // Set of tool IDs that are open
+            pinnedPanels: new Set(), // Set of tool IDs that are pinned
             panelPositions: {},     // Store {toolId: {x, y, width, height}}
             panelZCounter: 1,       // Counter for z-index stacking
             // Modifier keys are read from event directly (ctrlKey/metaKey, shiftKey)
@@ -1825,10 +1851,10 @@
         }
 
         function openPanel(tool) {
-            // In ephemeral mode, close all other panels first
+            // In ephemeral mode, close all other non-pinned panels first
             if (state.ephemeralPanels) {
                 state.openPanels.forEach(toolId => {
-                    if (toolId !== tool.id) {
+                    if (toolId !== tool.id && !state.pinnedPanels.has(toolId)) {
                         closePanel(toolId);
                     }
                 });
@@ -1888,12 +1914,21 @@
             panel.className = 'tool-panel';
             panel.dataset.panel = tool.id;
 
+            const isPinned = state.pinnedPanels.has(tool.id);
+            const pinVisibleClass = state.ephemeralPanels ? 'visible' : '';
+            const pinnedClass = isPinned ? 'pinned' : '';
+
             panel.innerHTML = `
                 <div class="tool-panel-header">
                     <span class="tool-panel-title">${tool.name}</span>
-                    <button class="tool-panel-close">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
-                    </button>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button class="tool-panel-pin ${pinVisibleClass} ${pinnedClass}" title="${isPinned ? 'Unpin panel' : 'Pin panel'}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>
+                        </button>
+                        <button class="tool-panel-close">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                        </button>
+                    </div>
                 </div>
                 <div class="tool-panel-content"></div>
             `;
@@ -1920,6 +1955,22 @@
             panel.style.zIndex = state.panelZCounter++;
             panel.addEventListener('mousedown', () => {
                 panel.style.zIndex = state.panelZCounter++;
+            });
+
+            // Add pin button handler
+            const pinBtn = panel.querySelector('.tool-panel-pin');
+            pinBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isPinned = state.pinnedPanels.has(tool.id);
+                if (isPinned) {
+                    state.pinnedPanels.delete(tool.id);
+                    pinBtn.classList.remove('pinned');
+                    pinBtn.title = 'Pin panel';
+                } else {
+                    state.pinnedPanels.add(tool.id);
+                    pinBtn.classList.add('pinned');
+                    pinBtn.title = 'Unpin panel';
+                }
             });
 
             // Add close button handler
@@ -2523,12 +2574,16 @@
                     hideComponentContextMenu();
                 }
 
-                // Close ephemeral panels when clicking outside
+                // Close ephemeral (non-pinned) panels when clicking outside
                 if (state.ephemeralPanels && state.openPanels.size > 0) {
                     const clickedPanel = e.target.closest('.tool-panel');
                     const clickedToolBtn = e.target.closest('.tool-btn');
                     if (!clickedPanel && !clickedToolBtn) {
-                        state.openPanels.forEach(toolId => closePanel(toolId));
+                        state.openPanels.forEach(toolId => {
+                            if (!state.pinnedPanels.has(toolId)) {
+                                closePanel(toolId);
+                            }
+                        });
                     }
                 }
             });
@@ -2586,8 +2641,10 @@
             });
             document.getElementById('ephemeral-panels').addEventListener('change', (e) => {
                 state.ephemeralPanels = e.target.checked;
-                // Close all panels when switching modes
-                state.openPanels.forEach(toolId => closePanel(toolId));
+                // Update pin button visibility on all open panels
+                document.querySelectorAll('.tool-panel-pin').forEach(btn => {
+                    btn.classList.toggle('visible', e.target.checked);
+                });
             });
             document.getElementById('immediate-mode').addEventListener('change', (e) => {
                 state.immediateMode = e.target.checked;
