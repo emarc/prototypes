@@ -1863,6 +1863,26 @@
         }
 
         function handleKeyDown(e) {
+            // ESC: deselect or exit edit context
+            if (e.key === 'Escape' && state.active) {
+                if (state.selectedComponents.length > 0) {
+                    // Deselect all
+                    clearSelection();
+                } else if (state.editContext && state.editContext !== 'MainView.java') {
+                    // Exit to parent context
+                    const currentContextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                    if (currentContextEl) {
+                        const parentFileEl = currentContextEl.parentElement?.closest('[data-file]');
+                        state.editContext = parentFileEl ? parentFileEl.dataset.file : 'MainView.java';
+                    } else {
+                        state.editContext = 'MainView.java';
+                    }
+                    updateEditContext();
+                }
+                e.preventDefault();
+                return;
+            }
+
             // Check for CMD (Mac) or CTRL (Windows/Linux)
             const isCmdOrCtrl = e.key === 'Meta' || e.key === 'Control';
             const isShift = e.key === 'Shift';
