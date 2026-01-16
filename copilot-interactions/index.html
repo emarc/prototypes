@@ -748,6 +748,29 @@
             display: block;
         }
 
+        /* === Status Tooltip === */
+        .status-tooltip {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: var(--devtools-bg);
+            color: var(--devtools-text);
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: monospace;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .status-tooltip.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
     </style>
 </head>
 <body>
@@ -895,6 +918,9 @@
         </button>
     </div>
 
+    <!-- Status Tooltip -->
+    <div class="status-tooltip"></div>
+
     <script>
         // === Mode Configuration ===
         const MODE_CONFIG = {
@@ -982,6 +1008,7 @@
             elements.selectionBadge = document.querySelector('.selection-badge');
             elements.componentContextMenu = document.querySelector('.component-context-menu');
             elements.contextMenuHeader = document.querySelector('.context-menu-header');
+            elements.statusTooltip = document.querySelector('.status-tooltip');
         }
 
         // === Rendering ===
@@ -1121,6 +1148,30 @@
             ).join('');
         }
 
+        function getComponentPath(element) {
+            const path = [];
+            let current = element;
+
+            while (current && elements.appContainer.contains(current)) {
+                if (current.dataset.file || current.dataset.component) {
+                    path.unshift(getComponentDisplayName(current));
+                }
+                current = current.parentElement;
+            }
+
+            return path.join('/');
+        }
+
+        function showStatusTooltip(component) {
+            const path = getComponentPath(component);
+            elements.statusTooltip.textContent = path;
+            elements.statusTooltip.classList.add('visible');
+        }
+
+        function hideStatusTooltip() {
+            elements.statusTooltip.classList.remove('visible');
+        }
+
         function updateSelectionBadge() {
             if (state.selectedComponents.length === 0) {
                 elements.selectionBadge.classList.remove('visible');
@@ -1156,11 +1207,15 @@
             } else {
                 elements.highlightLabel.classList.remove('visible');
             }
+
+            // Show status tooltip with full path
+            showStatusTooltip(element);
         }
 
         function hideHighlight() {
             elements.selectionHighlight.classList.remove('visible');
             elements.highlightLabel.classList.remove('visible');
+            hideStatusTooltip();
         }
 
         function updateEditContext() {
