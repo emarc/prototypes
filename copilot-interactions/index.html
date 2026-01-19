@@ -1202,6 +1202,10 @@
                 <input type="checkbox" id="has-subscription">
                 <span>Has subscription</span>
             </label>
+            <label class="feature-option">
+                <input type="checkbox" id="always-on-mode">
+                <span>Always on</span>
+            </label>
         </div>
     </div>
 
@@ -1396,7 +1400,7 @@
         // === Application State ===
         const state = {
             active: false,
-            currentMode: 'inspect',
+            currentMode: 'test',
             selectedComponents: [],
             hoverModeEnabled: false,
             contextMenuEnabled: true,
@@ -1405,6 +1409,7 @@
             ephemeralPanels: true,
             immediateMode: false,
             hasSubscription: false,
+            alwaysOnMode: false,
             toolbarExpanded: false,
             globalMenuOpen: false,
             prototypeOptionsOpen: false,
@@ -1514,7 +1519,12 @@
             elements.globalToolbar.dataset.visible = state.globalToolbarEnabled && (state.active || state.hoverPreviewActive);
 
             // Update activation button icon
-            const activationIcon = state.active ? 'x' : MODE_CONFIG[state.currentMode].icon;
+            let activationIcon;
+            if (state.alwaysOnMode) {
+                activationIcon = state.active ? 'chevron-right' : 'chevron-left';
+            } else {
+                activationIcon = state.active ? 'x' : MODE_CONFIG[state.currentMode].icon;
+            }
             elements.activationBtn.innerHTML = `<i data-lucide="${activationIcon}"></i>`;
             lucide.createIcons({ nodes: [elements.activationBtn] });
 
@@ -1611,13 +1621,27 @@
             state.active = false;
             state.toolbarExpanded = false;
             state.globalMenuOpen = false;
-            state.editContext = null;
 
-            elements.selectionOverlay.classList.remove('active');
-            clearSelection();
-            hideHighlight();
-            hideAllPanels();
-            updateEditContext();
+            if (state.alwaysOnMode) {
+                // In always-on mode, only hide toolbar and unpinned ephemeral panels
+                // Keep selection, highlight, edit context, and panels
+                if (state.ephemeralPanels) {
+                    state.openPanels.forEach(toolId => {
+                        if (!state.pinnedPanels.has(toolId)) {
+                            closePanel(toolId);
+                        }
+                    });
+                }
+            } else {
+                // Normal mode - hide everything
+                state.editContext = null;
+                elements.selectionOverlay.classList.remove('active');
+                clearSelection();
+                hideHighlight();
+                hideAllPanels();
+                updateEditContext();
+            }
+
             render();
         }
 
@@ -2653,6 +2677,10 @@
             });
             document.getElementById('has-subscription').addEventListener('change', (e) => {
                 state.hasSubscription = e.target.checked;
+                render();
+            });
+            document.getElementById('always-on-mode').addEventListener('change', (e) => {
+                state.alwaysOnMode = e.target.checked;
                 render();
             });
 
