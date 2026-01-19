@@ -835,6 +835,12 @@
             opacity: 0.7;
         }
 
+        .menu-divider {
+            height: 1px;
+            background: rgba(255,255,255,0.15);
+            margin: 6px 0;
+        }
+
         /* === Global Toolbar (vertical) === */
         .global-toolbar {
             position: absolute;
@@ -1284,6 +1290,11 @@
 
         <!-- Global menu moved outside toolbar so it can appear on right-click -->
         <div class="global-menu" data-open="false">
+            <button class="menu-item menu-panel-item" data-panel="app-info"><i data-lucide="info"></i> Application Info</button>
+            <button class="menu-item menu-panel-item" data-panel="dev-workflow"><i data-lucide="git-branch"></i> Dev Workflow</button>
+            <button class="menu-item menu-panel-item" data-panel="flags"><i data-lucide="flag"></i> Feature Flags</button>
+            <button class="menu-item menu-panel-item" data-panel="log"><i data-lucide="terminal"></i> Log</button>
+            <div class="menu-divider"></div>
             <button class="menu-item" id="menu-login-item"><i data-lucide="user"></i> <span>Log in</span></button>
             <button class="menu-item"><i data-lucide="user-check"></i> Impersonate app user</button>
             <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
@@ -1366,8 +1377,11 @@
                 tools: [
                     { id: 'outline', name: 'Outline', icon: 'layers' },
                     { id: 'palette', name: 'Palette', icon: 'palette' },
+                    { id: 'views-routes', name: 'Views & Routes', icon: 'map' },
+                    { id: 'ui-services', name: 'UI Services', icon: 'server' },
                     { id: 'properties', name: 'Properties', icon: 'sliders-horizontal' },
-                    { id: 'log', name: 'Log', icon: 'terminal' }
+                    { id: 'docs', name: 'Docs', icon: 'book-open' },
+                    { id: 'theme-editor', name: 'Theme Editor', icon: 'paintbrush' }
                 ]
             },
             inspect: {
@@ -1377,10 +1391,10 @@
                 readOnly: true,
                 tools: [
                     { id: 'outline', name: 'Outline', icon: 'layers' },
+                    { id: 'views-routes', name: 'Views & Routes', icon: 'map' },
+                    { id: 'ui-services', name: 'UI Services', icon: 'server' },
                     { id: 'properties', name: 'Properties', icon: 'sliders-horizontal' },
-                    { id: 'log', name: 'Log', icon: 'terminal' },
-                    { id: 'info', name: 'Info', icon: 'info' },
-                    { id: 'flags', name: 'Feature Flags', icon: 'flag' }
+                    { id: 'docs', name: 'Docs', icon: 'book-open' }
                 ]
             },
             test: {
@@ -1389,13 +1403,21 @@
                 selectionMode: false,
                 readOnly: true,
                 tools: [
+                    { id: 'accessibility', name: 'Accessibility Checker', icon: 'accessibility' },
+                    { id: 'ui-test-generator', name: 'UI Test Generator', icon: 'wand-2' },
                     { id: 'recorder', name: 'Test Recorder', icon: 'video' },
-                    { id: 'info', name: 'Info', icon: 'info' },
-                    { id: 'flags', name: 'Feature Flags', icon: 'flag' },
-                    { id: 'log', name: 'Log', icon: 'terminal' }
+                    { id: 'i18n', name: 'Internationalization', icon: 'globe' }
                 ]
             }
         };
+
+        // Global tools available in dots-menu (regardless of mode)
+        const GLOBAL_TOOLS = [
+            { id: 'app-info', name: 'Application Info', icon: 'info' },
+            { id: 'dev-workflow', name: 'Dev Workflow', icon: 'git-branch' },
+            { id: 'flags', name: 'Feature Flags', icon: 'flag' },
+            { id: 'log', name: 'Log', icon: 'terminal' }
+        ];
 
         // === Application State ===
         const state = {
@@ -2563,6 +2585,21 @@
             document.querySelectorAll('.menu-item').forEach(item => {
                 item.addEventListener('click', (e) => {
                     e.stopPropagation();
+                    // Handle panel items - open corresponding panel
+                    if (item.classList.contains('menu-panel-item')) {
+                        const panelId = item.dataset.panel;
+                        const globalTool = GLOBAL_TOOLS.find(t => t.id === panelId);
+                        if (globalTool) {
+                            if (state.openPanels.has(panelId)) {
+                                closePanel(panelId);
+                            } else {
+                                openPanel(globalTool);
+                            }
+                        }
+                        state.globalMenuOpen = false;
+                        render();
+                        return;
+                    }
                     // Handle login item specially
                     if (item.id === 'menu-login-item' && !state.hasSubscription) {
                         state.hasSubscription = true;
