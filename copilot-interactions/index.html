@@ -13,7 +13,6 @@
             --devtools-text: #ffffff;
             --devtools-hover: #16213e;
             --toolbar-height: 48px;
-            --activation-size: 48px;
             --transition-speed: 200ms;
             --selection-color: rgba(0, 180, 240, 0.3);
             --selection-border: rgba(0, 180, 240, 0.8);
@@ -386,138 +385,6 @@
             gap: 8px;
         }
 
-        /* === Activation Button === */
-        .activation-btn {
-            position: relative;
-            width: var(--activation-size);
-            height: var(--activation-size);
-            border-radius: 12px;
-            background: linear-gradient(to right, #1a81fa, #8854fc);
-            border: 2px solid rgba(255, 255, 255, 0.5);
-            color: #ffffff;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-speed) ease;
-            flex-shrink: 0;
-            box-shadow: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 8px 10px -6px rgba(0, 0, 0, 0.1);
-        }
-
-        .activation-btn:hover {
-            transform: scale(1.08);
-        }
-
-        .activation-btn svg {
-            width: 22px;
-            height: 22px;
-        }
-
-        .devtools[data-active="true"] .activation-btn {
-            /* Active state keeps the same gradient style */
-        }
-
-        /* Arming animation - sweeps from nothing to half ring (right half) */
-        @keyframes arming-sweep {
-            0% {
-                clip-path: polygon(
-                    50% 50%, 50% 0%, 50% 0%, 50% 0%,
-                    50% 0%, 50% 0%, 50% 0%, 50% 50%
-                );
-            }
-            100% {
-                clip-path: polygon(
-                    50% 50%, 50% 0%, 100% 0%, 100% 50%,
-                    100% 100%, 50% 100%, 50% 50%, 50% 50%
-                );
-            }
-        }
-
-        /* Disarming animation - sweeps from full ring down to half ring (right half) */
-        @keyframes disarming-sweep {
-            0% {
-                clip-path: polygon(
-                    50% 50%, 50% 0%, 100% 0%, 100% 100%,
-                    0% 100%, 0% 0%, 50% 0%, 50% 50%
-                );
-            }
-            100% {
-                clip-path: polygon(
-                    50% 50%, 50% 0%, 100% 0%, 100% 50%,
-                    100% 100%, 50% 100%, 50% 50%, 50% 50%
-                );
-            }
-        }
-
-        .activation-btn::before {
-            content: '';
-            position: absolute;
-            inset: -4px;
-            border-radius: 16px;
-            border: 3px solid rgba(255, 255, 255, 0.7);
-            opacity: 0;
-            pointer-events: none;
-        }
-
-        .activation-btn.arming::before {
-            opacity: 1;
-            animation: arming-sweep 300ms ease-out forwards;
-        }
-
-        .activation-btn.arming {
-            animation: arming-wiggle 150ms ease-in-out;
-        }
-
-        @keyframes arming-wiggle {
-            0%, 100% { transform: scale(1); }
-            50% { transform: scale(1.05); }
-        }
-
-        /* Disarming animation - full ring shrinks to half ring */
-        .activation-btn.disarming::before {
-            opacity: 1;
-            animation: disarming-sweep 300ms ease-out forwards;
-        }
-
-        .activation-btn.disarming {
-            animation: arming-wiggle 150ms ease-in-out;
-        }
-
-        /* === Toolbar Login Button === */
-        .toolbar-login-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
-            border: none;
-            background: transparent;
-            color: var(--devtools-text);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-speed) ease;
-            padding: 8px;
-            flex-shrink: 0;
-        }
-
-        .toolbar-login-btn:hover {
-            background: rgba(255, 255, 255, 0.08);
-        }
-
-        .toolbar-login-btn svg {
-            width: 24px;
-            height: 24px;
-        }
-
-        .toolbar-login-btn.hidden {
-            display: none;
-        }
-
-        /* Keep gradient style when hovering in preview mode */
-        .devtools[data-preview="true"] .activation-btn:hover {
-            transform: scale(1.08);
-        }
-
         /* === Toolbar === */
         .toolbar {
             display: flex;
@@ -525,31 +392,34 @@
             background: rgba(34, 35, 37, 0.68);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            border-radius: 12px;
+            border-radius: 16px;
             height: var(--toolbar-height);
-            overflow: hidden;
-            max-width: 0;
-            opacity: 0;
-            padding: 0;
+            padding: 4px;
             transition: all var(--transition-speed) ease;
             box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
         }
 
-        .toolbar[data-expanded="true"] {
-            max-width: 700px;
+        /* Tools section - hidden in Play mode */
+        .tools-section {
+            display: flex;
+            align-items: center;
+            max-width: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .toolbar[data-expanded="true"] .tools-section {
+            max-width: 600px;
             opacity: 1;
-            padding: 4px 8px;
             overflow: visible;
         }
 
         /* Hide tools in hover preview mode */
-        .toolbar[data-preview="true"] .tool-icons,
-        .toolbar[data-preview="true"] .toolbar-login-btn {
-            display: none;
-        }
-
-        .toolbar[data-preview="true"] .toolbar-divider {
-            display: none;
+        .toolbar[data-preview="true"] .tools-section {
+            max-width: 0;
+            opacity: 0;
+            overflow: hidden;
         }
 
         /* === Toolbar Divider === */
@@ -569,12 +439,29 @@
         /* === Mode Selector === */
         .mode-selector {
             display: flex;
-            gap: 2px;
+            gap: 0;
             align-items: center;
+            padding: 0;
+        }
+
+        /* When toolbar is collapsed (Play mode) AND hover mode is enabled, hide non-active mode buttons */
+        .toolbar[data-expanded="false"][data-hover-mode="true"] .mode-selector .mode-btn:not([data-active="true"]) {
+            width: 0;
+            min-width: 0;
+            padding: 0;
+            opacity: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Animate mode button expansion */
+        .mode-selector .mode-btn {
+            transition: width var(--transition-speed), min-width var(--transition-speed), padding var(--transition-speed), opacity var(--transition-speed);
         }
 
         .mode-btn {
             width: 40px;
+            min-width: 40px;
             height: 40px;
             border-radius: 12px;
             border: none;
@@ -596,16 +483,9 @@
             background: #303136;
         }
 
-        /* Outline style for selected mode in preview (not yet activated) */
-        .toolbar[data-preview="true"] .mode-btn[data-active="true"] {
-            background: transparent;
-            color: var(--devtools-primary);
-            border: 2px solid var(--devtools-primary);
-        }
-
         .mode-btn svg {
-            width: 24px;
-            height: 24px;
+            width: 22px;
+            height: 22px;
         }
 
         /* === Tool Icons === */
@@ -790,7 +670,7 @@
 
         .global-menu {
             position: absolute;
-            bottom: calc(var(--activation-size) + 8px);
+            bottom: calc(var(--toolbar-height) + 8px);
             right: 0;
             background: #303136;
             border: 2px solid #1a81fa;
@@ -1036,7 +916,7 @@
         /* === Global Toolbar (vertical) === */
         .global-toolbar {
             position: absolute;
-            bottom: calc(var(--activation-size) + 8px);
+            bottom: calc(var(--toolbar-height) + 8px);
             right: 0;
             display: flex;
             flex-direction: column;
@@ -1400,10 +1280,6 @@
                 <input type="checkbox" id="has-subscription">
                 <span>Has subscription</span>
             </label>
-            <label class="feature-option">
-                <input type="checkbox" id="always-on-mode">
-                <span>Always on</span>
-            </label>
         </div>
     </div>
 
@@ -1444,8 +1320,6 @@
 
     <!-- DevTools -->
     <div class="devtools" data-active="false">
-        <button class="activation-btn" aria-label="Toggle DevTools"></button>
-
         <!-- Global Toolbar (vertical, above activation button) -->
         <div class="global-toolbar" data-visible="false">
             <button class="global-tool-btn" title="Info"><i data-lucide="info"></i></button>
@@ -1455,33 +1329,34 @@
         </div>
 
         <div class="toolbar" data-expanded="false">
-            <div class="tool-icons"></div>
+            <div class="tools-section">
+                <div class="tool-icons"></div>
 
-            <div class="toolbar-divider tool-divider"></div>
+                <div class="toolbar-divider tool-divider"></div>
+
+                <div class="global-menu-container">
+                    <button class="global-menu-btn" title="Global Settings">
+                        <i data-lucide="circle-user-round"></i>
+                    </button>
+                </div>
+
+                <div class="toolbar-divider"></div>
+            </div>
 
             <div class="mode-selector">
                 <button class="mode-btn" data-mode="edit" title="Edit Mode">
-                    <i data-lucide="pencil"></i>
+                    <i data-lucide="square-pen"></i>
+                </button>
+                <button class="mode-btn" data-mode="test" title="Test Mode">
+                    <i data-lucide="bug"></i>
                 </button>
                 <button class="mode-btn" data-mode="inspect" title="Inspect Mode">
                     <i data-lucide="search"></i>
                 </button>
-                <button class="mode-btn" data-mode="test" title="Test Mode">
-                    <i data-lucide="play-circle"></i>
+                <button class="mode-btn" data-mode="play" title="Play Mode">
+                    <i data-lucide="play"></i>
                 </button>
             </div>
-
-            <div class="toolbar-divider"></div>
-
-            <div class="global-menu-container">
-                <button class="global-menu-btn" title="Global Settings">
-                    <i data-lucide="more-vertical"></i>
-                </button>
-            </div>
-
-            <button class="toolbar-login-btn" title="Log in">
-                <i data-lucide="user"></i>
-            </button>
         </div>
 
         <!-- Global menu moved outside toolbar so it can appear on right-click -->
@@ -1600,7 +1475,7 @@
         const MODE_CONFIG = {
             edit: {
                 name: 'Edit',
-                icon: 'pencil',
+                icon: 'square-pen',
                 selectionMode: true,
                 readOnly: false,
                 tools: [
@@ -1611,6 +1486,18 @@
                     { id: 'properties', name: 'Properties', icon: 'sliders-horizontal' },
                     { id: 'docs', name: 'Docs', icon: 'book-open' },
                     { id: 'theme-editor', name: 'Theme Editor', icon: 'paintbrush' }
+                ]
+            },
+            test: {
+                name: 'Test',
+                icon: 'bug',
+                selectionMode: false,
+                readOnly: true,
+                tools: [
+                    { id: 'accessibility', name: 'Accessibility Checker', icon: 'accessibility' },
+                    { id: 'ui-test-generator', name: 'UI Test Generator', icon: 'wand-2' },
+                    { id: 'recorder', name: 'Test Recorder', icon: 'video' },
+                    { id: 'i18n', name: 'Internationalization', icon: 'globe' }
                 ]
             },
             inspect: {
@@ -1626,17 +1513,12 @@
                     { id: 'docs', name: 'Docs', icon: 'book-open' }
                 ]
             },
-            test: {
-                name: 'Test',
-                icon: 'play-circle',
+            play: {
+                name: 'Play',
+                icon: 'play',
                 selectionMode: false,
                 readOnly: true,
-                tools: [
-                    { id: 'accessibility', name: 'Accessibility Checker', icon: 'accessibility' },
-                    { id: 'ui-test-generator', name: 'UI Test Generator', icon: 'wand-2' },
-                    { id: 'recorder', name: 'Test Recorder', icon: 'video' },
-                    { id: 'i18n', name: 'Internationalization', icon: 'globe' }
-                ]
+                tools: []
             }
         };
 
@@ -1651,7 +1533,7 @@
         // === Application State ===
         const state = {
             active: false,
-            currentMode: 'test',
+            currentMode: 'play',
             selectedComponents: [],
             hoverModeEnabled: false,
             contextMenuEnabled: true,
@@ -1660,8 +1542,6 @@
             ephemeralPanels: true,
             immediateMode: false,
             hasSubscription: false,
-            alwaysOnMode: false,
-            toolbarExpanded: false,
             globalMenuOpen: false,
             prototypeOptionsOpen: false,
             componentContextMenuOpen: false,
@@ -1683,7 +1563,7 @@
         };
 
         // Mode order for cycling
-        const MODE_ORDER = ['edit', 'inspect', 'test'];
+        const MODE_ORDER = ['edit', 'test', 'inspect', 'play'];
 
         // === Walkthrough Configuration ===
         const WALKTHROUGH_STEPS = [
@@ -1698,7 +1578,7 @@
                 id: 'modes',
                 target: '.mode-selector',
                 title: 'Switch Between Modes',
-                description: 'DevTools has three modes: Edit for making changes, Inspect for exploring components, and Test for recording interactions.',
+                description: 'DevTools has four modes: Edit for making changes, Test for automated testing, Inspect for exploring components, and Play for normal app usage.',
                 position: 'top'
             },
             {
@@ -1723,8 +1603,8 @@
 
         function initElements() {
             elements.devtools = document.querySelector('.devtools');
-            elements.activationBtn = document.querySelector('.activation-btn');
             elements.toolbar = document.querySelector('.toolbar');
+            elements.toolsSection = document.querySelector('.tools-section');
             elements.modeSelector = document.querySelector('.mode-selector');
             elements.toolIcons = document.querySelector('.tool-icons');
             elements.globalMenu = document.querySelector('.global-menu');
@@ -1744,7 +1624,6 @@
             elements.componentContextMenu = document.querySelector('.component-context-menu');
             elements.contextMenuHeader = document.querySelector('.context-menu-header');
             elements.statusTooltip = document.querySelector('.status-tooltip');
-            elements.toolbarLoginBtn = document.querySelector('.toolbar-login-btn');
             elements.menuLoginItem = document.getElementById('menu-login-item');
             elements.menuLoginRow = document.getElementById('menu-login-row');
             elements.menuUserProfile = document.getElementById('menu-user-profile');
@@ -1766,28 +1645,19 @@
         function render() {
             elements.devtools.dataset.active = state.active;
             elements.devtools.dataset.preview = state.hoverPreviewActive && !state.active;
-            elements.toolbar.dataset.expanded = state.toolbarExpanded;
+            // Toolbar is expanded in non-play modes, or when hover preview is active
+            const showModeSelector = state.currentMode !== 'play' || state.hoverPreviewActive;
+            elements.toolbar.dataset.expanded = showModeSelector;
             elements.toolbar.dataset.preview = state.hoverPreviewActive && !state.active;
+            elements.toolbar.dataset.hoverMode = state.hoverModeEnabled;
             elements.globalMenu.dataset.open = state.globalMenuOpen;
-            elements.globalToolbar.dataset.visible = state.globalToolbarEnabled && (state.active || state.hoverPreviewActive);
-
-            // Update activation button icon
-            let activationIcon;
-            if (state.alwaysOnMode) {
-                activationIcon = state.active ? 'chevron-right' : 'chevron-left';
-            } else {
-                activationIcon = state.active ? 'x' : MODE_CONFIG[state.currentMode].icon;
-            }
-            elements.activationBtn.innerHTML = `<i data-lucide="${activationIcon}"></i>`;
-            lucide.createIcons({ nodes: [elements.activationBtn] });
+            elements.globalToolbar.dataset.visible = state.globalToolbarEnabled && state.currentMode !== 'play';
 
             // Update mode buttons
             document.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.dataset.active = btn.dataset.mode === state.currentMode;
             });
 
-            // Update login/subscription UI
-            elements.toolbarLoginBtn.classList.toggle('hidden', state.hasSubscription);
             // Toggle between login row and user profile
             if (state.hasSubscription) {
                 elements.menuLoginRow.style.display = 'none';
@@ -1824,67 +1694,60 @@
         }
 
         // === Activation Functions ===
-        function activateDevTools(modeId) {
-            state.active = true;
+        function switchMode(modeId) {
             state.currentMode = modeId;
-            state.toolbarExpanded = true;
             state.hoverPreviewActive = false;
 
             const modeConfig = MODE_CONFIG[modeId];
 
-            if (modeConfig.selectionMode) {
-                elements.selectionOverlay.classList.add('active');
-                state.editContext = 'MainView.java';
-                updateEditContext();
-            } else {
+            // Play mode is essentially "off" - no tools, no selection
+            if (modeId === 'play') {
+                state.active = false;
                 elements.selectionOverlay.classList.remove('active');
                 state.editContext = null;
                 updateEditContext();
-                clearSelection();
-                hideHighlight();
-            }
-
-            renderTools(modeConfig.tools);
-
-            // Show panels that are available in this mode, hide others
-            updateVisiblePanels();
-            updateToolButtonStates();
-
-            render();
-
-            // Start walkthrough on first activation
-            if (!state.walkthroughShown) {
-                // Small delay to let the toolbar animation complete
-                setTimeout(startWalkthrough, 300);
-            }
-        }
-
-        function deactivateDevTools() {
-            state.active = false;
-            state.toolbarExpanded = false;
-            state.globalMenuOpen = false;
-
-            if (state.alwaysOnMode) {
-                // In always-on mode, only hide toolbar and unpinned ephemeral panels
-                // Keep selection, highlight, edit context, and panels
-                if (state.ephemeralPanels) {
-                    state.openPanels.forEach(toolId => {
-                        if (!state.pinnedPanels.has(toolId)) {
-                            closePanel(toolId);
-                        }
-                    });
-                }
-            } else {
-                // Normal mode - hide everything
-                state.editContext = null;
-                elements.selectionOverlay.classList.remove('active');
                 clearSelection();
                 hideHighlight();
                 hideAllPanels();
-                updateEditContext();
+                renderTools([]);
+            } else {
+                state.active = true;
+                if (modeConfig.selectionMode) {
+                    elements.selectionOverlay.classList.add('active');
+                    state.editContext = 'MainView.java';
+                    updateEditContext();
+                } else {
+                    elements.selectionOverlay.classList.remove('active');
+                    state.editContext = null;
+                    updateEditContext();
+                    clearSelection();
+                    hideHighlight();
+                }
+
+                renderTools(modeConfig.tools);
+
+                // Show panels that are available in this mode, hide others
+                updateVisiblePanels();
+                updateToolButtonStates();
+
+                // Start walkthrough on first activation
+                if (!state.walkthroughShown) {
+                    // Small delay to let the toolbar animation complete
+                    setTimeout(startWalkthrough, 300);
+                }
             }
 
             render();
+        }
+
+        // Legacy function for compatibility
+        function activateDevTools(modeId) {
+            switchMode(modeId);
+        }
+
+        function deactivateDevTools() {
+            // Deactivating now just switches to Play mode
+            switchMode('play');
         }
 
         function hideAllPanels() {
@@ -2042,65 +1905,8 @@
         }
 
         // === Event Handlers ===
-        function handleActivationClick() {
-            if (state.active) {
-                deactivateDevTools();
-            } else {
-                activateDevTools(state.currentMode);
-            }
-        }
-
-        let hoverTimeout = null;
-
-        function handleActivationHoverEnter() {
-            if (!state.hoverModeEnabled) return;
-            if (state.active) return;
-
-            clearTimeout(hoverTimeout);
-            state.hoverPreviewActive = true;
-            state.toolbarExpanded = true;
-            render();
-        }
-
-        function handleActivationHoverLeave() {
-            if (!state.hoverModeEnabled) return;
-            if (state.active) return;
-
-            hoverTimeout = setTimeout(() => {
-                if (state.hoverPreviewActive && !state.active) {
-                    state.hoverPreviewActive = false;
-                    state.toolbarExpanded = false;
-                    state.globalMenuOpen = false;
-                    render();
-                }
-            }, 200);
-        }
-
-        function handleToolbarHoverEnter() {
-            if (!state.hoverModeEnabled) return;
-            clearTimeout(hoverTimeout);
-        }
-
-        function handleToolbarHoverLeave() {
-            if (!state.hoverModeEnabled) return;
-            if (state.active) return;
-
-            hoverTimeout = setTimeout(() => {
-                if (state.hoverPreviewActive && !state.active) {
-                    state.hoverPreviewActive = false;
-                    state.toolbarExpanded = false;
-                    state.globalMenuOpen = false;
-                    render();
-                }
-            }, 200);
-        }
-
         function handleModeSelect(modeId) {
-            state.currentMode = modeId;
-
-            if (state.active || state.hoverPreviewActive) {
-                activateDevTools(modeId);
-            }
+            switchMode(modeId);
 
             // Show edit mode walkthrough if not logged in and selecting edit mode
             if (modeId === 'edit' && !state.hasSubscription && state.active) {
@@ -2474,13 +2280,77 @@
 
         function handleHoverModeChange(enabled) {
             state.hoverModeEnabled = enabled;
+            render();
         }
 
-        function handleActivationContextMenu(e) {
-            if (!state.contextMenuEnabled) return;
-            e.preventDefault();
-            state.globalMenuOpen = !state.globalMenuOpen;
+        // === URL Parameter Handling ===
+        const PROTOTYPE_OPTIONS = [
+            'hover-mode',
+            'context-menu',
+            'global-toolbar',
+            'pierce-by-default',
+            'ephemeral-panels',
+            'immediate-mode',
+            'has-subscription'
+        ];
+
+        function loadOptionsFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            PROTOTYPE_OPTIONS.forEach(option => {
+                if (params.has(option)) {
+                    const value = params.get(option) === 'true';
+                    const checkbox = document.getElementById(option);
+                    if (checkbox) {
+                        checkbox.checked = value;
+                        // Trigger change event to update state
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+        }
+
+        function saveOptionsToURL() {
+            const params = new URLSearchParams();
+            PROTOTYPE_OPTIONS.forEach(option => {
+                const checkbox = document.getElementById(option);
+                if (checkbox) {
+                    // Only include non-default values to keep URL clean
+                    const isDefault = (option === 'context-menu' || option === 'ephemeral-panels')
+                        ? checkbox.checked === true
+                        : checkbox.checked === false;
+                    if (!isDefault) {
+                        params.set(option, checkbox.checked);
+                    }
+                }
+            });
+            const newURL = params.toString()
+                ? `${window.location.pathname}?${params.toString()}`
+                : window.location.pathname;
+            window.history.replaceState({}, '', newURL);
+        }
+
+        // Hover mode for showing mode selector on toolbar hover
+        let hoverTimeout = null;
+
+        function handleToolbarHoverEnter() {
+            if (!state.hoverModeEnabled) return;
+            if (state.active) return;
+
+            clearTimeout(hoverTimeout);
+            state.hoverPreviewActive = true;
             render();
+        }
+
+        function handleToolbarHoverLeave() {
+            if (!state.hoverModeEnabled) return;
+            if (state.active) return;
+
+            hoverTimeout = setTimeout(() => {
+                if (state.hoverPreviewActive && !state.active) {
+                    state.hoverPreviewActive = false;
+                    render();
+                }
+            }, 200);
         }
 
         function showComponentContextMenu(x, y) {
@@ -2677,26 +2547,16 @@
         function resetShortcut() {
             state.shortcutArmed = false;
             state.shortcutCmdTaps = 0;
-            elements.activationBtn.classList.remove('arming', 'disarming');
         }
 
         function armShortcut() {
             state.shortcutArmed = true;
-            // Use 'arming' when inactive (will activate), 'disarming' when active (will deactivate)
-            elements.activationBtn.classList.remove('arming', 'disarming');
-            elements.activationBtn.classList.add(state.active ? 'disarming' : 'arming');
         }
 
         function cycleMode() {
             const currentIndex = MODE_ORDER.indexOf(state.currentMode);
             const nextIndex = (currentIndex + 1) % MODE_ORDER.length;
-            state.currentMode = MODE_ORDER[nextIndex];
-
-            if (state.active) {
-                activateDevTools(state.currentMode);
-            }
-
-            render();
+            switchMode(MODE_ORDER[nextIndex]);
         }
 
         function handleKeyDown(e) {
@@ -2739,20 +2599,8 @@
                 if (state.shortcutCmdTaps === 1) {
                     // First tap - arm the shortcut
                     armShortcut();
-                } else if (state.shortcutCmdTaps === 2) {
-                    // Second tap - toggle DevTools
-                    if (state.active) {
-                        deactivateDevTools();
-                    } else {
-                        activateDevTools(state.currentMode);
-                    }
-                    resetShortcut();
-                    // Keep counting for mode cycling (only if now active)
-                    if (state.active) {
-                        state.shortcutCmdTaps = 2;
-                    }
-                } else if (state.shortcutCmdTaps > 2 && state.active) {
-                    // Additional taps while active - cycle mode
+                } else if (state.shortcutCmdTaps >= 2) {
+                    // Second+ tap - cycle through modes
                     cycleMode();
                 }
 
@@ -2771,22 +2619,24 @@
         function init() {
             initElements();
 
-            // Activation button events
-            elements.activationBtn.addEventListener('click', handleActivationClick);
-            elements.activationBtn.addEventListener('mouseenter', handleActivationHoverEnter);
-            elements.activationBtn.addEventListener('mouseleave', handleActivationHoverLeave);
-            elements.activationBtn.addEventListener('contextmenu', handleActivationContextMenu);
-
-            // Toolbar hover events
-            elements.toolbar.addEventListener('mouseenter', handleToolbarHoverEnter);
-            elements.toolbar.addEventListener('mouseleave', handleToolbarHoverLeave);
-
             // Mode buttons
             document.querySelectorAll('.mode-btn').forEach(btn => {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
                     handleModeSelect(btn.dataset.mode);
                 });
+            });
+
+            // Toolbar hover for mode selector preview
+            elements.toolbar.addEventListener('mouseenter', handleToolbarHoverEnter);
+            elements.toolbar.addEventListener('mouseleave', handleToolbarHoverLeave);
+
+            // Right-click on toolbar to show global menu
+            elements.toolbar.addEventListener('contextmenu', (e) => {
+                if (!state.contextMenuEnabled) return;
+                e.preventDefault();
+                state.globalMenuOpen = true;
+                render();
             });
 
             // Global menu
@@ -2802,14 +2652,6 @@
                     render();
                 });
             }
-
-            // Toolbar login button - clicking logs in (enables subscription)
-            elements.toolbarLoginBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                state.hasSubscription = true;
-                document.getElementById('has-subscription').checked = true;
-                render();
-            });
 
             // Global menu items
             document.querySelectorAll('.menu-item').forEach(item => {
@@ -2920,16 +2762,20 @@
             // Configuration checkboxes
             document.getElementById('hover-mode').addEventListener('change', (e) => {
                 handleHoverModeChange(e.target.checked);
+                saveOptionsToURL();
             });
             document.getElementById('context-menu').addEventListener('change', (e) => {
                 state.contextMenuEnabled = e.target.checked;
+                saveOptionsToURL();
             });
             document.getElementById('global-toolbar').addEventListener('change', (e) => {
                 state.globalToolbarEnabled = e.target.checked;
                 render();
+                saveOptionsToURL();
             });
             document.getElementById('pierce-by-default').addEventListener('change', (e) => {
                 state.pierceByDefault = e.target.checked;
+                saveOptionsToURL();
             });
             document.getElementById('ephemeral-panels').addEventListener('change', (e) => {
                 state.ephemeralPanels = e.target.checked;
@@ -2937,20 +2783,18 @@
                 document.querySelectorAll('.tool-panel-pin').forEach(btn => {
                     btn.classList.toggle('visible', e.target.checked);
                 });
+                saveOptionsToURL();
             });
             document.getElementById('immediate-mode').addEventListener('change', (e) => {
                 state.immediateMode = e.target.checked;
                 document.documentElement.classList.toggle('immediate-mode', e.target.checked);
+                saveOptionsToURL();
             });
             document.getElementById('has-subscription').addEventListener('change', (e) => {
                 state.hasSubscription = e.target.checked;
                 render();
+                saveOptionsToURL();
             });
-            document.getElementById('always-on-mode').addEventListener('change', (e) => {
-                state.alwaysOnMode = e.target.checked;
-                render();
-            });
-
             // Global toolbar buttons (stub handlers)
             document.querySelectorAll('.global-tool-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -3018,6 +2862,9 @@
 
             // Initialize Lucide icons
             lucide.createIcons();
+
+            // Load options from URL (must be after event listeners are set up)
+            loadOptionsFromURL();
 
             // Initial render
             render();
