@@ -31,7 +31,7 @@ Store mode configuration in inline JSON. Each mode has:
 |------|----------------------|--------|-------|
 | Edit | Selection | Read/Write | Outline, Palette, Properties, Log |
 | Inspect | Selection | Read-only | Outline, Properties, Log, Info, Feature flags |
-| Test | Interaction | Read-only | Test recorder, Info, Feature flags, Log |
+| Test | Interaction | Read/Write | Test recorder, Info, Feature flags, Log |
 
 ### Selection vs Interaction Mode
 
