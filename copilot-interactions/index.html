@@ -1401,7 +1401,7 @@
                 <div class="menu-divider"></div>
                 <button class="menu-item"><i data-lucide="user-check"></i> Impersonate app user</button>
                 <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
-                <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>Feature Walkthrough (0/4)</span></button>
+                <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>Feature Walkthrough (0/6)</span></button>
                 <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
             </div>
         </div>
@@ -1595,6 +1595,22 @@
                 description: 'Edit mode lets you modify the UI directly. Select components, change properties, and see updates in real-time. Note: Editing requires a Vaadin subscription.',
                 position: 'top',
                 showLoginButton: true
+            },
+            {
+                id: 'test-mode',
+                target: '.mode-btn[data-mode="test"]',
+                title: 'Test Mode',
+                description: 'Test mode helps you create automated UI tests and check accessibility. Record user interactions and generate test code. Note: Testing features require a Vaadin subscription.',
+                position: 'top',
+                showLoginButton: true
+            },
+            {
+                id: 'inspect-mode',
+                target: '.mode-btn[data-mode="inspect"]',
+                title: 'Inspect Mode',
+                description: 'Inspect mode lets you explore your application\'s component structure and properties in read-only mode. No subscription required - start inspecting right away!',
+                position: 'top',
+                showLoginButton: false
             }
         ];
 
