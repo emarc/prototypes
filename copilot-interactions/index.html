@@ -1943,7 +1943,7 @@
 
             // In ephemeral mode, position near toolbar only if no saved position
             if (state.ephemeralPanels && !state.panelPositions[tool.id]) {
-                positionPanelNearToolbar(panelEl);
+                positionPanelNearToolbar(panelEl, tool.id);
             }
 
             // Update content (read-only status may vary by mode)
@@ -1951,13 +1951,29 @@
             updateToolButtonStates();
         }
 
-        function positionPanelNearToolbar(panelEl) {
+        function positionPanelNearToolbar(panelEl, toolId) {
             const toolbarRect = elements.toolbar.getBoundingClientRect();
-            // Position above the toolbar, aligned to the right
-            panelEl.style.right = '20px';
-            panelEl.style.bottom = (window.innerHeight - toolbarRect.top + 8) + 'px';
-            panelEl.style.left = 'auto';
-            panelEl.style.top = 'auto';
+            const toolBtn = document.querySelector(`.tool-btn[data-tool="${toolId}"]`);
+
+            if (toolBtn) {
+                const btnRect = toolBtn.getBoundingClientRect();
+                const panelWidth = 280; // Default panel width from CSS
+                // Center panel horizontally over the button
+                const left = btnRect.left + (btnRect.width / 2) - (panelWidth / 2);
+                // Clamp to viewport
+                const clampedLeft = Math.max(8, Math.min(left, window.innerWidth - panelWidth - 8));
+
+                panelEl.style.left = clampedLeft + 'px';
+                panelEl.style.bottom = (window.innerHeight - toolbarRect.top + 8) + 'px';
+                panelEl.style.right = 'auto';
+                panelEl.style.top = 'auto';
+            } else {
+                // Fallback: align to right (for global menu panels)
+                panelEl.style.right = '20px';
+                panelEl.style.bottom = (window.innerHeight - toolbarRect.top + 8) + 'px';
+                panelEl.style.left = 'auto';
+                panelEl.style.top = 'auto';
+            }
         }
 
         function closePanel(toolId) {
