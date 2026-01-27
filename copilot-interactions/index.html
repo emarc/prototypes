@@ -391,21 +391,20 @@
             position: relative;
             width: var(--activation-size);
             height: var(--activation-size);
-            border-radius: 50%;
-            background: var(--devtools-bg);
-            border: 2px solid var(--devtools-primary);
-            color: var(--devtools-primary);
+            border-radius: 12px;
+            background: linear-gradient(to right, #1a81fa, #8854fc);
+            border: 2px solid rgba(255, 255, 255, 0.5);
+            color: #ffffff;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all var(--transition-speed) ease;
             flex-shrink: 0;
+            box-shadow: 0px 20px 25px -5px rgba(0, 0, 0, 0.1), 0px 8px 10px -6px rgba(0, 0, 0, 0.1);
         }
 
         .activation-btn:hover {
-            background: var(--devtools-primary);
-            color: var(--devtools-bg);
             transform: scale(1.08);
         }
 
@@ -415,8 +414,7 @@
         }
 
         .devtools[data-active="true"] .activation-btn {
-            background: var(--devtools-primary);
-            color: var(--devtools-bg);
+            /* Active state keeps the same gradient style */
         }
 
         /* Arming animation - sweeps from nothing to half ring (right half) */
@@ -455,8 +453,8 @@
             content: '';
             position: absolute;
             inset: -4px;
-            border-radius: 50%;
-            border: 3px solid var(--devtools-primary);
+            border-radius: 16px;
+            border: 3px solid rgba(255, 255, 255, 0.7);
             opacity: 0;
             pointer-events: none;
         }
@@ -487,9 +485,9 @@
 
         /* === Toolbar Login Button === */
         .toolbar-login-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
             border: none;
             background: transparent;
             color: var(--devtools-text);
@@ -498,28 +496,25 @@
             align-items: center;
             justify-content: center;
             transition: all var(--transition-speed) ease;
-            opacity: 0.7;
+            padding: 8px;
             flex-shrink: 0;
         }
 
         .toolbar-login-btn:hover {
-            background: var(--devtools-hover);
-            opacity: 1;
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .toolbar-login-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 24px;
+            height: 24px;
         }
 
         .toolbar-login-btn.hidden {
             display: none;
         }
 
-        /* Keep outline style when hovering in preview mode */
+        /* Keep gradient style when hovering in preview mode */
         .devtools[data-preview="true"] .activation-btn:hover {
-            background: var(--devtools-bg);
-            color: var(--devtools-primary);
             transform: scale(1.08);
         }
 
@@ -527,18 +522,21 @@
         .toolbar {
             display: flex;
             align-items: center;
-            background: var(--devtools-bg);
-            border-radius: 24px;
+            background: rgba(34, 35, 37, 0.68);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 12px;
             height: var(--toolbar-height);
             overflow: hidden;
             max-width: 0;
             opacity: 0;
             padding: 0;
             transition: all var(--transition-speed) ease;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
         }
 
         .toolbar[data-expanded="true"] {
-            max-width: 500px;
+            max-width: 700px;
             opacity: 1;
             padding: 4px 8px;
             overflow: visible;
@@ -550,46 +548,52 @@
             display: none;
         }
 
-        .toolbar[data-preview="true"] .mode-selector,
-        .toolbar[data-preview="true"] .global-menu-container {
-            border-left: none;
-            padding-left: 0;
-            margin-left: 0;
+        .toolbar[data-preview="true"] .toolbar-divider {
+            display: none;
+        }
+
+        /* === Toolbar Divider === */
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: rgba(255, 255, 255, 0.15);
+            margin: 0 4px;
+            flex-shrink: 0;
+        }
+
+        /* Hide divider next to empty tool-icons */
+        .tool-icons:empty + .tool-divider {
+            display: none;
         }
 
         /* === Mode Selector === */
         .mode-selector {
             display: flex;
             gap: 2px;
-            padding-left: 10px;
-            border-left: 1px solid rgba(255,255,255,0.15);
-            margin-left: 6px;
+            align-items: center;
         }
 
         .mode-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
             border: none;
             background: transparent;
             color: var(--devtools-text);
-            opacity: 0.5;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
             transition: all var(--transition-speed) ease;
+            padding: 8px;
         }
 
         .mode-btn:hover {
-            opacity: 0.8;
-            background: var(--devtools-hover);
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .mode-btn[data-active="true"] {
-            opacity: 1;
-            background: var(--devtools-primary);
-            color: var(--devtools-bg);
+            background: #303136;
         }
 
         /* Outline style for selected mode in preview (not yet activated) */
@@ -600,20 +604,21 @@
         }
 
         .mode-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 24px;
+            height: 24px;
         }
 
         /* === Tool Icons === */
         .tool-icons {
             display: flex;
-            gap: 2px;
+            gap: 0;
+            align-items: center;
         }
 
         .tool-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
             border: none;
             background: transparent;
             color: var(--devtools-text);
@@ -622,22 +627,20 @@
             align-items: center;
             justify-content: center;
             transition: all var(--transition-speed) ease;
-            opacity: 0.7;
+            padding: 8px;
         }
 
         .tool-btn:hover {
-            background: var(--devtools-hover);
-            opacity: 1;
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .tool-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 24px;
+            height: 24px;
         }
 
         .tool-btn[data-active="true"] {
-            color: var(--devtools-primary);
-            opacity: 1;
+            background: #303136;
         }
 
         /* === Tool Panels === */
@@ -757,15 +760,14 @@
         /* === Global Menu === */
         .global-menu-container {
             position: relative;
-            margin-left: 6px;
-            padding-left: 10px;
-            border-left: 1px solid rgba(255,255,255,0.15);
+            display: flex;
+            align-items: center;
         }
 
         .global-menu-btn {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
             border: none;
             background: transparent;
             color: var(--devtools-text);
@@ -774,33 +776,33 @@
             align-items: center;
             justify-content: center;
             transition: all var(--transition-speed) ease;
-            opacity: 0.7;
+            padding: 8px;
         }
 
         .global-menu-btn:hover {
-            background: var(--devtools-hover);
-            opacity: 1;
+            background: rgba(255, 255, 255, 0.08);
         }
 
         .global-menu-btn svg {
-            width: 18px;
-            height: 18px;
+            width: 24px;
+            height: 24px;
         }
 
         .global-menu {
             position: absolute;
             bottom: calc(var(--activation-size) + 8px);
             right: 0;
-            background: var(--devtools-bg);
+            background: #303136;
+            border: 2px solid #1a81fa;
             border-radius: 8px;
-            padding: 6px;
-            min-width: 180px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            min-width: 240px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
             opacity: 0;
             visibility: hidden;
             transform: translateY(8px);
             transition: all var(--transition-speed) ease;
             z-index: 10002;
+            overflow: hidden;
         }
 
         .global-menu[data-open="true"] {
@@ -809,36 +811,226 @@
             transform: translateY(0);
         }
 
-        .menu-item {
+        .menu-header {
             display: flex;
             align-items: center;
-            gap: 10px;
-            width: 100%;
-            padding: 10px 12px;
+            justify-content: space-between;
+            padding: 8px 8px 8px 16px;
+        }
+
+        .menu-header-title {
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: var(--devtools-text);
+        }
+
+        .menu-close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 12px;
             border: none;
             background: transparent;
             color: var(--devtools-text);
-            font-size: 13px;
             cursor: pointer;
-            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-speed);
+        }
+
+        .menu-close-btn:hover {
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .menu-close-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .menu-content {
+            padding: 0 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            height: 36px;
+            padding: 8px;
+            border: none;
+            background: #393a40;
+            color: var(--devtools-text);
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.25px;
+            cursor: pointer;
+            border-radius: 8px;
             transition: background var(--transition-speed);
             text-align: left;
         }
 
         .menu-item:hover {
-            background: var(--devtools-hover);
+            background: #45464d;
         }
 
         .menu-item svg {
-            width: 16px;
-            height: 16px;
-            opacity: 0.7;
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .menu-item-primary {
+            background: #0368de;
+        }
+
+        .menu-item-primary:hover {
+            background: #0577f7;
         }
 
         .menu-divider {
             height: 1px;
             background: rgba(255,255,255,0.15);
-            margin: 6px 0;
+            margin: 8px 0;
+        }
+
+        /* Menu login row - two buttons side by side */
+        .menu-login-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .menu-login-row .menu-item {
+            flex: 1;
+        }
+
+        /* User profile row (logged in state) */
+        .menu-user-profile {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 11px 8px;
+            background: #393a40;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background var(--transition-speed);
+            margin-bottom: 16px;
+        }
+
+        .menu-user-profile:hover {
+            background: #45464d;
+        }
+
+        .menu-user-profile.visible {
+            display: flex;
+        }
+
+        .menu-user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #8B6914 0%, #C4951A 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            font-weight: 600;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .menu-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .menu-user-name {
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--devtools-text);
+            letter-spacing: 0.25px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .menu-user-tier {
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            color: rgba(255, 255, 255, 0.7);
+            letter-spacing: 0.4px;
+        }
+
+        .menu-user-menu-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--devtools-text);
+            flex-shrink: 0;
+        }
+
+        .menu-user-menu-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* IntelliJ plugin item */
+        .menu-item-plugin {
+            background: #145750;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .menu-item-plugin:hover {
+            background: #1a6b62;
+        }
+
+        .menu-item-plugin .plugin-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .menu-item-plugin .plugin-text {
+            flex: 1;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .menu-item-plugin .plugin-name {
+            white-space: nowrap;
+        }
+
+        .menu-item-plugin .plugin-badge {
+            font-size: 12px;
+            color: #0bd8b6;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+        }
+
+        .menu-item-plugin .plugin-external {
+            flex-shrink: 0;
+        }
+
+        .menu-item-plugin .plugin-external svg {
+            width: 18px;
+            height: 18px;
         }
 
         /* === Global Toolbar (vertical) === */
@@ -1265,6 +1457,8 @@
         <div class="toolbar" data-expanded="false">
             <div class="tool-icons"></div>
 
+            <div class="toolbar-divider tool-divider"></div>
+
             <div class="mode-selector">
                 <button class="mode-btn" data-mode="edit" title="Edit Mode">
                     <i data-lucide="pencil"></i>
@@ -1276,6 +1470,8 @@
                     <i data-lucide="play-circle"></i>
                 </button>
             </div>
+
+            <div class="toolbar-divider"></div>
 
             <div class="global-menu-container">
                 <button class="global-menu-btn" title="Global Settings">
@@ -1290,16 +1486,49 @@
 
         <!-- Global menu moved outside toolbar so it can appear on right-click -->
         <div class="global-menu" data-open="false">
-            <button class="menu-item menu-panel-item" data-panel="app-info"><i data-lucide="info"></i> Application Info</button>
-            <button class="menu-item menu-panel-item" data-panel="dev-workflow"><i data-lucide="git-branch"></i> Dev Workflow</button>
-            <button class="menu-item menu-panel-item" data-panel="flags"><i data-lucide="flag"></i> Feature Flags</button>
-            <button class="menu-item menu-panel-item" data-panel="log"><i data-lucide="terminal"></i> Log</button>
-            <div class="menu-divider"></div>
-            <button class="menu-item" id="menu-login-item"><i data-lucide="user"></i> <span>Log in</span></button>
-            <button class="menu-item"><i data-lucide="user-check"></i> Impersonate app user</button>
-            <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
-            <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>Feature Walkthrough (0/4)</span></button>
-            <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
+            <div class="menu-header">
+                <span class="menu-header-title">Welcome to Vaadin</span>
+                <button class="menu-close-btn" title="Close"><i data-lucide="x"></i></button>
+            </div>
+            <div class="menu-content">
+                <!-- Login row (shown when logged out) -->
+                <div class="menu-login-row" id="menu-login-row">
+                    <button class="menu-item menu-item-primary" id="menu-login-item"><i data-lucide="log-in"></i> <span>Log In</span></button>
+                    <button class="menu-item" id="menu-signup-item"><i data-lucide="user-plus"></i> <span>Sign Up for Free</span></button>
+                </div>
+                <!-- User profile (shown when logged in) -->
+                <div class="menu-user-profile" id="menu-user-profile">
+                    <div class="menu-user-avatar">MG</div>
+                    <div class="menu-user-info">
+                        <div class="menu-user-name">Marcin Głowacki</div>
+                        <div class="menu-user-tier">Enterprise</div>
+                    </div>
+                    <div class="menu-user-menu-btn"><i data-lucide="more-vertical"></i></div>
+                </div>
+                <!-- IntelliJ Plugin -->
+                <button class="menu-item menu-item-plugin">
+                    <svg class="plugin-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect width="24" height="24" rx="4" fill="#000"/>
+                        <path d="M3 19.5H12V21H3V19.5Z" fill="#fff"/>
+                        <path d="M5.25 5.25H6.75V6.75H5.25V5.25ZM5.25 8.25H6.75V15H5.25V8.25Z" fill="#fff"/>
+                        <path d="M8.25 8.25H9.75V9.75H8.25V8.25ZM8.25 11.25H9.75V15H8.25V11.25Z" fill="#fff"/>
+                    </svg>
+                    <span class="plugin-text">
+                        <span class="plugin-name">Vaadin Plugin for IntelliJ</span>
+                        <span class="plugin-badge">Recommended</span>
+                    </span>
+                    <span class="plugin-external"><i data-lucide="arrow-up-right"></i></span>
+                </button>
+                <button class="menu-item menu-panel-item" data-panel="app-info"><i data-lucide="info"></i> Application Info</button>
+                <button class="menu-item menu-panel-item" data-panel="dev-workflow"><i data-lucide="git-branch"></i> Dev Workflow</button>
+                <button class="menu-item menu-panel-item" data-panel="flags"><i data-lucide="flag"></i> Feature Flags</button>
+                <button class="menu-item menu-panel-item" data-panel="log"><i data-lucide="terminal"></i> Log</button>
+                <div class="menu-divider"></div>
+                <button class="menu-item"><i data-lucide="user-check"></i> Impersonate app user</button>
+                <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
+                <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>Feature Walkthrough (0/4)</span></button>
+                <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
+            </div>
         </div>
     </div>
 
@@ -1517,6 +1746,8 @@
             elements.statusTooltip = document.querySelector('.status-tooltip');
             elements.toolbarLoginBtn = document.querySelector('.toolbar-login-btn');
             elements.menuLoginItem = document.getElementById('menu-login-item');
+            elements.menuLoginRow = document.getElementById('menu-login-row');
+            elements.menuUserProfile = document.getElementById('menu-user-profile');
             elements.walkthroughOverlay = document.querySelector('.walkthrough-overlay');
             elements.walkthroughSpotlight = document.querySelector('.walkthrough-spotlight');
             elements.walkthroughPopup = document.querySelector('.walkthrough-popup');
@@ -1557,24 +1788,13 @@
 
             // Update login/subscription UI
             elements.toolbarLoginBtn.classList.toggle('hidden', state.hasSubscription);
+            // Toggle between login row and user profile
             if (state.hasSubscription) {
-                elements.menuLoginItem.innerHTML = '<i data-lucide="user"></i> <span>John Doe</span>';
-                // Use a filled circle behind the user icon to simulate "solid"
-                lucide.createIcons({ nodes: [elements.menuLoginItem] });
-                // Add a style to make it appear solid
-                const icon = elements.menuLoginItem.querySelector('svg');
-                if (icon) {
-                    icon.style.fill = 'currentColor';
-                    icon.style.fillOpacity = '0.3';
-                }
+                elements.menuLoginRow.style.display = 'none';
+                elements.menuUserProfile.classList.add('visible');
             } else {
-                elements.menuLoginItem.innerHTML = '<i data-lucide="user"></i> <span>Log in</span>';
-                lucide.createIcons({ nodes: [elements.menuLoginItem] });
-                const icon = elements.menuLoginItem.querySelector('svg');
-                if (icon) {
-                    icon.style.fill = 'none';
-                    icon.style.fillOpacity = '';
-                }
+                elements.menuLoginRow.style.display = 'flex';
+                elements.menuUserProfile.classList.remove('visible');
             }
 
             // Update walkthrough menu item progress
@@ -2573,6 +2793,16 @@
             console.log('Global menu btn found:', elements.globalMenuBtn);
             elements.globalMenuBtn.addEventListener('click', handleGlobalMenuToggle);
 
+            // Menu close button
+            const menuCloseBtn = document.querySelector('.menu-close-btn');
+            if (menuCloseBtn) {
+                menuCloseBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    state.globalMenuOpen = false;
+                    render();
+                });
+            }
+
             // Toolbar login button - clicking logs in (enables subscription)
             elements.toolbarLoginBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -2600,8 +2830,8 @@
                         render();
                         return;
                     }
-                    // Handle login item specially
-                    if (item.id === 'menu-login-item' && !state.hasSubscription) {
+                    // Handle login/signup items specially
+                    if ((item.id === 'menu-login-item' || item.id === 'menu-signup-item') && !state.hasSubscription) {
                         state.hasSubscription = true;
                         document.getElementById('has-subscription').checked = true;
                     }
