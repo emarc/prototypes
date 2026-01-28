@@ -1084,11 +1084,12 @@
 
         .walkthrough-popup {
             position: fixed;
-            background: var(--devtools-bg);
-            border-radius: 12px;
+            background: #303136;
+            border: 2px solid #1a81fa;
+            border-radius: 8px;
             padding: 20px;
             width: 320px;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1);
             z-index: 10012;
             opacity: 0;
             visibility: hidden;
@@ -1105,32 +1106,40 @@
             position: absolute;
             width: 12px;
             height: 12px;
-            background: var(--devtools-bg);
+            background: #303136;
             transform: rotate(45deg);
         }
 
         .walkthrough-popup[data-arrow="top"]::before {
-            top: -6px;
+            top: -7px;
             left: 50%;
             margin-left: -6px;
+            border-top: 2px solid #1a81fa;
+            border-left: 2px solid #1a81fa;
         }
 
         .walkthrough-popup[data-arrow="bottom"]::before {
-            bottom: -6px;
+            bottom: -7px;
             left: 50%;
             margin-left: -6px;
+            border-bottom: 2px solid #1a81fa;
+            border-right: 2px solid #1a81fa;
         }
 
         .walkthrough-popup[data-arrow="left"]::before {
-            left: -6px;
+            left: -7px;
             top: 50%;
             margin-top: -6px;
+            border-bottom: 2px solid #1a81fa;
+            border-left: 2px solid #1a81fa;
         }
 
         .walkthrough-popup[data-arrow="right"]::before {
-            right: -6px;
+            right: -7px;
             top: 50%;
             margin-top: -6px;
+            border-top: 2px solid #1a81fa;
+            border-right: 2px solid #1a81fa;
         }
 
         .walkthrough-title {
@@ -1168,7 +1177,7 @@
         }
 
         .walkthrough-dot.active {
-            background: var(--devtools-primary);
+            background: #0368de;
         }
 
         .walkthrough-buttons {
@@ -1178,32 +1187,32 @@
 
         .walkthrough-btn {
             padding: 8px 16px;
-            border-radius: 6px;
+            border-radius: 8px;
             border: none;
+            font-family: 'Roboto', system-ui, sans-serif;
             font-size: 13px;
             font-weight: 500;
+            letter-spacing: 0.25px;
             cursor: pointer;
-            transition: all var(--transition-speed);
+            transition: background var(--transition-speed);
         }
 
         .walkthrough-btn-secondary {
-            background: transparent;
+            background: #393a40;
             color: var(--devtools-text);
-            opacity: 0.7;
         }
 
         .walkthrough-btn-secondary:hover {
-            opacity: 1;
-            background: var(--devtools-hover);
+            background: #45464d;
         }
 
         .walkthrough-btn-primary {
-            background: var(--devtools-primary);
-            color: var(--devtools-bg);
+            background: #0368de;
+            color: white;
         }
 
         .walkthrough-btn-primary:hover {
-            filter: brightness(1.1);
+            background: #0577f7;
         }
 
         .walkthrough-login {
