@@ -14,8 +14,14 @@
             --devtools-hover: #16213e;
             --toolbar-height: 48px;
             --transition-speed: 200ms;
-            --selection-color: rgba(0, 180, 240, 0.3);
-            --selection-border: rgba(0, 180, 240, 0.8);
+            /* Edit context colors (ruby red) */
+            --edit-context-color: #e54666;
+            --edit-context-text: #ffffff;
+            /* Selection colors (dark gray) */
+            --selection-bg: #303136;
+            --selection-text: #ffffff;
+            --selection-color: rgba(48, 49, 54, 0.15);
+            --selection-border: #303136;
         }
 
         /* === Immediate Mode (no animations) === */
@@ -240,7 +246,7 @@
 
         /* Selected component style */
         [data-component].selected {
-            outline: 2px solid var(--devtools-primary);
+            outline: 2px solid var(--selection-border);
             outline-offset: 2px;
         }
 
@@ -249,14 +255,16 @@
             position: fixed;
             display: none;
             align-items: center;
-            gap: 2px;
-            background: var(--devtools-primary);
-            color: white;
-            padding: 2px 4px 2px 6px;
-            border-radius: 3px;
-            font-size: 11px;
-            font-weight: 500;
-            z-index: 9999;
+            gap: 4px;
+            background: var(--selection-bg);
+            color: var(--selection-text);
+            padding: 8px 8px 8px 16px;
+            border-radius: 8px 8px 0 0;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            z-index: 10002;
         }
 
         .selection-badge.visible {
@@ -271,44 +279,42 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
             cursor: pointer;
-            opacity: 0.7;
+            opacity: 1;
             transition: opacity 100ms, background 100ms;
         }
 
         .selection-badge-action:hover {
-            opacity: 1;
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.15);
         }
 
         .selection-badge-action svg {
-            width: 12px;
-            height: 12px;
+            width: 16px;
+            height: 16px;
         }
 
         .selection-badge-menu {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 16px;
-            height: 16px;
-            border-radius: 2px;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
             cursor: pointer;
-            opacity: 0.8;
+            opacity: 1;
             transition: opacity 100ms, background 100ms;
         }
 
         .selection-badge-menu:hover {
-            opacity: 1;
-            background: rgba(0, 0, 0, 0.2);
+            background: rgba(255, 255, 255, 0.15);
         }
 
         .selection-badge-menu svg {
-            width: 14px;
-            height: 14px;
+            width: 16px;
+            height: 16px;
         }
 
         /* === Component Context Menu === */
@@ -994,7 +1000,7 @@
 
         /* === Edit Context === */
         [data-file].edit-context {
-            outline: 2px dashed var(--devtools-primary);
+            outline: 2px solid var(--edit-context-color);
             outline-offset: 4px;
             position: relative;
         }
@@ -1006,29 +1012,39 @@
 
         .edit-context-badge {
             position: absolute;
-            top: -8px;
+            top: -5px;
             right: -6px;
             transform: translateY(-100%);
             display: none;
             align-items: center;
             gap: 4px;
-            background: var(--devtools-bg);
-            color: var(--devtools-primary);
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-family: monospace;
+            background: var(--edit-context-color);
+            color: var(--edit-context-text);
+            padding: 4px 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: 'Roboto', system-ui, sans-serif;
             z-index: 10001;
             white-space: nowrap;
+            letter-spacing: 0.4px;
+        }
+
+        .edit-context-badge .edit-label {
+            opacity: 0.7;
+        }
+
+        .edit-context-badge .edit-filename {
+            font-weight: 500;
         }
 
         .drill-up-icon {
-            width: 12px;
-            height: 12px;
+            width: 18px;
+            height: 18px;
             cursor: pointer;
             opacity: 0;
             pointer-events: none;
             transition: opacity 100ms;
+            margin-left: 2px;
         }
 
         .drill-up-icon:hover {
@@ -1060,23 +1076,41 @@
         .highlight-label {
             position: absolute;
             top: 4px;
-            left: 4px;
-            background: none;
-            color: var(--devtools-primary);
-            padding: 2px;
-            font-size: 11px;
-            font-family: monospace;
+            right: 4px;
+            background: var(--selection-bg);
+            color: var(--selection-text);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Roboto', system-ui, sans-serif;
             pointer-events: auto;
             cursor: pointer;
             display: none;
+            align-items: center;
+            gap: 4px;
+            letter-spacing: 0.4px;
         }
 
         .highlight-label:hover {
-            text-decoration: underline;
+            background: #404146;
         }
 
         .highlight-label.visible {
-            display: block;
+            display: flex;
+        }
+
+        .highlight-label .drill-down-icon {
+            width: 14px;
+            height: 14px;
+            opacity: 0.8;
+        }
+
+        .highlight-label-text {
+            opacity: 0.7;
+        }
+
+        .highlight-label-file {
+            font-weight: 500;
         }
 
         /* === Feature Walkthrough === */
@@ -1461,13 +1495,16 @@
     <div class="selection-overlay"></div>
 
     <div class="selection-highlight">
-        <span class="highlight-label"></span>
+        <span class="highlight-label">
+            <span class="highlight-label-text">Edit </span><span class="highlight-label-file"></span>
+            <svg class="drill-down-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15 15 20 20 15"></path><path d="M4 4h7a4 4 0 0 1 4 4v12"></path></svg>
+        </span>
     </div>
 
     <!-- Edit Context Badge -->
     <div class="edit-context-badge">
-        <svg class="drill-up-icon" xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9 9 4 4 9"></path><path d="M20 20h-7a4 4 0 0 1-4-4V4"></path></svg>
-        <span class="badge-text"></span>
+        <span class="edit-label">Editing </span><span class="edit-filename"></span>
+        <svg class="drill-up-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9 9 4 4 9"></path><path d="M20 20h-7a4 4 0 0 1-4-4V4"></path></svg>
     </div>
 
     <!-- Selection Badge -->
@@ -1674,11 +1711,12 @@
             elements.globalMenuBtn = document.querySelector('.global-menu-btn');
             elements.selectionHighlight = document.querySelector('.selection-highlight');
             elements.highlightLabel = document.querySelector('.highlight-label');
+            elements.highlightLabelFile = document.querySelector('.highlight-label-file');
             elements.selectionOverlay = document.querySelector('.selection-overlay');
             elements.appContainer = document.querySelector('.app-container');
             elements.globalToolbar = document.querySelector('.global-toolbar');
             elements.editContextBadge = document.querySelector('.edit-context-badge');
-            elements.badgeText = document.querySelector('.badge-text');
+            elements.editFilename = document.querySelector('.edit-filename');
             elements.drillUpIcon = document.querySelector('.drill-up-icon');
             elements.toolPanelsContainer = document.querySelector('.tool-panels-container');
             elements.selectionBadge = document.querySelector('.selection-badge');
@@ -1926,7 +1964,7 @@
 
             // Show label if this is a drillable component
             if (drillableFile && drillableFile !== state.editContext) {
-                elements.highlightLabel.textContent = drillableFile;
+                elements.highlightLabelFile.textContent = drillableFile;
                 elements.highlightLabel.classList.add('visible');
             } else {
                 elements.highlightLabel.classList.remove('visible');
@@ -1956,7 +1994,7 @@
 
                     // Move badge into the context element
                     contextEl.appendChild(elements.editContextBadge);
-                    elements.badgeText.textContent = state.editContext;
+                    elements.editFilename.textContent = state.editContext;
 
                     // Show drill-up icon only if not at root
                     if (state.editContext !== 'MainView.java') {
@@ -2818,7 +2856,7 @@
             });
             elements.highlightLabel.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const file = elements.highlightLabel.textContent;
+                const file = elements.highlightLabelFile.textContent;
                 if (file && file !== state.editContext) {
                     state.editContext = file;
                     updateEditContext();
