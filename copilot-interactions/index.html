@@ -382,7 +382,6 @@
             display: flex;
             flex-direction: row-reverse;
             align-items: center;
-            gap: 8px;
         }
 
         /* === Toolbar === */
@@ -392,7 +391,7 @@
             background: rgba(34, 35, 37, 0.68);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
-            border-radius: 16px;
+            border-radius: 16px 0 0 16px; /* Square on right where menu connects */
             height: var(--toolbar-height);
             padding: 4px;
             transition: all var(--transition-speed) ease;
@@ -642,12 +641,18 @@
             position: relative;
             display: flex;
             align-items: center;
+            background: rgba(34, 35, 37, 0.68);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border-radius: 0 16px 16px 0; /* Only round right side */
+            height: var(--toolbar-height);
+            padding: 0;
         }
 
         .global-menu-btn {
-            width: 40px;
-            height: 40px;
-            border-radius: 12px;
+            width: 20px;
+            height: 100%;
+            border-radius: 0 12px 12px 0;
             border: none;
             background: transparent;
             color: var(--devtools-text);
@@ -656,7 +661,7 @@
             align-items: center;
             justify-content: center;
             transition: all var(--transition-speed) ease;
-            padding: 8px;
+            padding: 0;
         }
 
         .global-menu-btn:hover {
@@ -664,8 +669,8 @@
         }
 
         .global-menu-btn svg {
-            width: 24px;
-            height: 24px;
+            width: 16px;
+            height: 16px;
         }
 
         .global-menu {
@@ -1328,19 +1333,18 @@
             <button class="global-tool-btn" title="Impersonation"><i data-lucide="user"></i></button>
         </div>
 
+        <!-- Menu button - connected to toolbar on the right side -->
+        <div class="global-menu-container">
+            <button class="global-menu-btn" title="Menu">
+                <i data-lucide="more-vertical"></i>
+            </button>
+        </div>
+
         <div class="toolbar" data-expanded="false">
             <div class="tools-section">
                 <div class="tool-icons"></div>
 
                 <div class="toolbar-divider tool-divider"></div>
-
-                <div class="global-menu-container">
-                    <button class="global-menu-btn" title="Global Settings">
-                        <i data-lucide="circle-user-round"></i>
-                    </button>
-                </div>
-
-                <div class="toolbar-divider"></div>
             </div>
 
             <div class="mode-selector">
