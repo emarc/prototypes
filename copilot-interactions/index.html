@@ -791,6 +791,10 @@
             margin: 8px 0;
         }
 
+        .menu-item-spaced {
+            margin-bottom: 16px;
+        }
+
         /* Menu login row - two buttons side by side */
         .menu-login-row {
             display: flex;
@@ -1380,7 +1384,7 @@
         <!-- Global menu moved outside toolbar so it can appear on right-click -->
         <div class="global-menu" data-open="false">
             <div class="menu-header">
-                <span class="menu-header-title">Welcome to Vaadin</span>
+                <span class="menu-header-title">VAADIN DEVTOOLS</span>
                 <button class="menu-close-btn" title="Close"><i data-lucide="x"></i></button>
             </div>
             <div class="menu-content">
@@ -1416,8 +1420,7 @@
                 <button class="menu-item menu-panel-item" data-panel="dev-workflow"><i data-lucide="git-branch"></i> Dev Workflow</button>
                 <button class="menu-item menu-panel-item" data-panel="flags"><i data-lucide="flag"></i> Feature Flags</button>
                 <button class="menu-item menu-panel-item" data-panel="log"><i data-lucide="terminal"></i> Log</button>
-                <div class="menu-divider"></div>
-                <button class="menu-item"><i data-lucide="user-check"></i> Impersonate app user</button>
+                <button class="menu-item menu-item-spaced"><i data-lucide="user-check"></i> Impersonate app user</button>
                 <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
                 <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>Feature Walkthrough (0/6)</span></button>
                 <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
