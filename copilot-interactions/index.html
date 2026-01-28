@@ -1276,7 +1276,7 @@
         <div class="prototype-options-menu">
             <span class="config-label">Prototype options</span>
             <label class="feature-option">
-                <input type="checkbox" id="hover-mode">
+                <input type="checkbox" id="hover-mode" checked>
                 <span>Hover mode</span>
             </label>
             <label class="feature-option">
@@ -1556,7 +1556,7 @@
             active: false,
             currentMode: 'play',
             selectedComponents: [],
-            hoverModeEnabled: false,
+            hoverModeEnabled: true,
             contextMenuEnabled: true,
             globalToolbarEnabled: false,
             pierceByDefault: false,
@@ -2368,7 +2368,7 @@
                 const checkbox = document.getElementById(option);
                 if (checkbox) {
                     // Only include non-default values to keep URL clean
-                    const isDefault = (option === 'context-menu' || option === 'ephemeral-panels')
+                    const isDefault = (option === 'context-menu' || option === 'ephemeral-panels' || option === 'hover-mode')
                         ? checkbox.checked === true
                         : checkbox.checked === false;
                     if (!isDefault) {
