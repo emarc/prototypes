@@ -989,7 +989,7 @@
         .edit-context-badge {
             position: absolute;
             top: -8px;
-            left: -6px;
+            right: -6px;
             transform: translateY(-100%);
             display: none;
             align-items: center;
@@ -1727,7 +1727,7 @@
                 elements.toolIcons.appendChild(btn);
             });
 
-            lucide.createIcons();
+            lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
         }
 
         // === Activation Functions ===
@@ -2429,7 +2429,7 @@
             state.componentContextMenuOpen = true;
 
             // Initialize icons
-            lucide.createIcons({ nodes: [menu] });
+            lucide.createIcons({ attrs: { 'stroke-width': 1.5 }, nodes: [menu] });
         }
 
         function hideComponentContextMenu() {
@@ -2505,7 +2505,7 @@
             const showLogin = step.showLoginButton && !state.hasSubscription;
             elements.walkthroughLogin.classList.toggle('hidden', !showLogin);
             if (showLogin) {
-                lucide.createIcons({ nodes: [elements.walkthroughLogin] });
+                lucide.createIcons({ attrs: { 'stroke-width': 1.5 }, nodes: [elements.walkthroughLogin] });
             }
 
             // Position spotlight on target
@@ -2914,7 +2914,7 @@
             });
 
             // Initialize Lucide icons
-            lucide.createIcons();
+            lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
 
             // Load options from URL (must be after event listeners are set up)
             loadOptionsFromURL();
