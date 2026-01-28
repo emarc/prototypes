@@ -1945,9 +1945,9 @@
         function handleModeSelect(modeId) {
             switchMode(modeId);
 
-            // Show edit mode walkthrough if not logged in and selecting edit mode
-            if (modeId === 'edit' && !state.hasSubscription && state.active) {
-                showWalkthroughStepById('edit-mode');
+            // Show walkthrough if not logged in and selecting edit or test mode
+            if ((modeId === 'edit' || modeId === 'test') && !state.hasSubscription && state.active) {
+                showWalkthroughStepById(modeId + '-mode');
             }
         }
 
