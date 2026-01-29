@@ -819,6 +819,56 @@
             margin-bottom: 16px;
         }
 
+        /* Menu groups - shared background */
+        .menu-group {
+            background: #393a40;
+            border-radius: 8px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .menu-group .menu-item {
+            background: transparent;
+            border-radius: 4px;
+        }
+
+        .menu-group .menu-item:hover {
+            background: rgba(255,255,255,0.08);
+        }
+
+        /* Special plugin group - top item green, rest gray */
+        .menu-group-plugin {
+            padding: 0;
+            overflow: hidden;
+            border-radius: 8px;
+            background: #393a40;
+        }
+
+        .menu-group-plugin .menu-item {
+            background: transparent;
+            border-radius: 0;
+            padding: 8px;
+        }
+
+        .menu-group-plugin .menu-item:first-child {
+            background: #145750;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .menu-group-plugin .menu-item:first-child:hover {
+            background: #1a6b62;
+        }
+
+        .menu-group-plugin .menu-item:last-child {
+            border-radius: 0 0 8px 8px;
+        }
+
+        .menu-group-plugin .menu-item:not(:first-child):hover {
+            background: rgba(255,255,255,0.08);
+        }
+
         /* Menu login row - two buttons side by side */
         .menu-login-row {
             display: flex;
@@ -910,7 +960,6 @@
             display: flex;
             align-items: center;
             gap: 8px;
-            margin-bottom: 16px;
         }
 
         .menu-item-plugin:hover {
@@ -1461,28 +1510,36 @@
                     </div>
                     <div class="menu-user-menu-btn"><i data-lucide="more-vertical"></i></div>
                 </div>
-                <!-- IntelliJ Plugin -->
-                <button class="menu-item menu-item-plugin">
-                    <svg class="plugin-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect width="24" height="24" rx="4" fill="#000"/>
-                        <path d="M3 19.5H12V21H3V19.5Z" fill="#fff"/>
-                        <path d="M5.25 5.25H6.75V6.75H5.25V5.25ZM5.25 8.25H6.75V15H5.25V8.25Z" fill="#fff"/>
-                        <path d="M8.25 8.25H9.75V9.75H8.25V8.25ZM8.25 11.25H9.75V15H8.25V11.25Z" fill="#fff"/>
-                    </svg>
-                    <span class="plugin-text">
-                        <span class="plugin-name">Vaadin Plugin for IntelliJ</span>
-                        <span class="plugin-badge">Recommended</span>
-                    </span>
-                    <span class="plugin-external"><i data-lucide="arrow-up-right"></i></span>
-                </button>
-                <button class="menu-item menu-panel-item" data-panel="app-info"><i data-lucide="info"></i> Application Info</button>
-                <button class="menu-item menu-panel-item" data-panel="dev-workflow"><i data-lucide="git-branch"></i> Dev Workflow</button>
-                <button class="menu-item menu-panel-item" data-panel="flags"><i data-lucide="flag"></i> Feature Flags</button>
-                <button class="menu-item menu-panel-item" data-panel="log"><i data-lucide="terminal"></i> Log</button>
-                <button class="menu-item menu-item-spaced"><i data-lucide="user-check"></i> Impersonate app user</button>
-                <button class="menu-item"><i data-lucide="message-circle"></i> Give Feedback</button>
-                <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>Feature Walkthrough (0/6)</span></button>
-                <button class="menu-item"><i data-lucide="settings"></i> Settings</button>
+                <!-- Group 1: Vaadin Plugin + Developer Workflow + Feature Flags -->
+                <div class="menu-group menu-group-plugin">
+                    <button class="menu-item menu-item-plugin">
+                        <svg class="plugin-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="24" height="24" rx="4" fill="#000"/>
+                            <path d="M3 19.5H12V21H3V19.5Z" fill="#fff"/>
+                            <path d="M5.25 5.25H6.75V6.75H5.25V5.25ZM5.25 8.25H6.75V15H5.25V8.25Z" fill="#fff"/>
+                            <path d="M8.25 8.25H9.75V9.75H8.25V8.25ZM8.25 11.25H9.75V15H8.25V11.25Z" fill="#fff"/>
+                        </svg>
+                        <span class="plugin-text">
+                            <span class="plugin-name">Vaadin Plugin for IntelliJ</span>
+                            <span class="plugin-badge">Recommended</span>
+                        </span>
+                        <span class="plugin-external"><i data-lucide="arrow-up-right"></i></span>
+                    </button>
+                    <button class="menu-item menu-panel-item" data-panel="dev-workflow"><i data-lucide="git-branch"></i> Developer Workflow</button>
+                    <button class="menu-item menu-panel-item" data-panel="flags"><i data-lucide="flag"></i> Feature Flags</button>
+                </div>
+                <!-- Group 2: App Info, App Log, Impersonate -->
+                <div class="menu-group">
+                    <button class="menu-item menu-panel-item" data-panel="app-info"><i data-lucide="info"></i> App Info</button>
+                    <button class="menu-item menu-panel-item" data-panel="log"><i data-lucide="terminal"></i> App Log</button>
+                    <button class="menu-item"><i data-lucide="user-check"></i> Impersonate App User</button>
+                </div>
+                <!-- Group 3: Feedback, Walkthrough, Settings -->
+                <div class="menu-group">
+                    <button class="menu-item"><i data-lucide="message-circle"></i> Submit Feedback</button>
+                    <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>DevTools Walkthrough (0/6)</span></button>
+                    <button class="menu-item"><i data-lucide="settings"></i> DevTools Settings</button>
+                </div>
             </div>
         </div>
     </div>
@@ -1772,7 +1829,7 @@
             // Update walkthrough menu item progress
             const walkthroughSpan = elements.menuWalkthroughItem.querySelector('span');
             if (walkthroughSpan) {
-                walkthroughSpan.textContent = `Feature Walkthrough (${state.walkthroughStepsSeen}/${WALKTHROUGH_STEPS.length})`;
+                walkthroughSpan.textContent = `DevTools Walkthrough (${state.walkthroughStepsSeen}/${WALKTHROUGH_STEPS.length})`;
             }
         }
 
