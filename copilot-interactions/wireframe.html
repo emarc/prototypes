@@ -1,0 +1,3057 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vaadin DevTools Prototype</title>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        /* === CSS Custom Properties === */
+        :root {
+            --devtools-primary: #888;
+            --devtools-bg: #ffffff;
+            --devtools-text: #333;
+            --devtools-hover: #f0f0f0;
+            --toolbar-height: 48px;
+            --transition-speed: 0ms;
+            /* Edit context colors */
+            --edit-context-color: #666;
+            --edit-context-text: #fff;
+            /* Selection colors */
+            --selection-bg: #555;
+            --selection-text: #ffffff;
+            --selection-color: rgba(0, 0, 0, 0.06);
+            --selection-border: #333;
+        }
+
+        /* === Immediate Mode (no animations) === */
+        :root.immediate-mode {
+            --transition-speed: 0ms;
+        }
+
+        :root.immediate-mode * {
+            transition-duration: 0ms !important;
+        }
+
+        /* === Reset & Base === */
+        *, *::before, *::after {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px 20px 20px;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        /* === Prototype Options Dropdown === */
+        .prototype-options {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            z-index: 9999;
+        }
+
+        .prototype-options-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 2px;
+            border: 1px solid #999;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed);
+        }
+
+        .prototype-options-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .prototype-options-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .prototype-options-menu {
+            position: absolute;
+            top: 48px;
+            left: 0;
+            background: #fff;
+            border-radius: 2px;
+            padding: 8px;
+            min-width: 200px;
+            border: 1px solid #999;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(-8px);
+            transition: all var(--transition-speed);
+        }
+
+        .prototype-options-menu.visible {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .prototype-options-menu .config-label {
+            font-weight: 500;
+            color: #666;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 8px 12px 4px;
+        }
+
+        .feature-option {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 2px;
+            transition: background var(--transition-speed);
+            color: #333;
+            font-size: 13px;
+        }
+
+        .feature-option:hover {
+            background: #f0f0f0;
+        }
+
+        .feature-option input {
+            accent-color: var(--devtools-primary);
+        }
+
+        /* === App Container === */
+        .app-container {
+            padding-bottom: 100px;
+            max-width: 550px;
+            margin: 0 auto;
+        }
+
+        /* === Address Form === */
+        .address-form {
+            background: white;
+            padding: 28px;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .address-form h2 {
+            margin: 0 0 24px;
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 16px;
+        }
+
+        .form-row .form-field {
+            flex: 1;
+        }
+
+        .form-field {
+            margin-bottom: 18px;
+        }
+
+        .form-field label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #555;
+            margin-bottom: 6px;
+        }
+
+        .form-field input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color var(--transition-speed), box-shadow var(--transition-speed);
+        }
+
+        .form-field input:focus {
+            outline: none;
+            border-color: var(--devtools-primary);
+            box-shadow: 0 0 0 3px rgba(0, 180, 240, 0.15);
+        }
+
+        .form-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 12px;
+            margin-top: 24px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition-speed);
+        }
+
+        .btn-secondary {
+            background: white;
+            border: 1px solid #ddd;
+            color: #555;
+        }
+
+        .btn-secondary:hover {
+            background: #f5f5f5;
+            border-color: #ccc;
+        }
+
+        .btn-primary {
+            background: #1a73e8;
+            border: 1px solid #1a73e8;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1557b0;
+            border-color: #1557b0;
+        }
+
+        /* === Selection Overlay === */
+        .selection-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            z-index: 9997; /* Below highlight (9998) and devtools (10000) */
+            display: none;
+            cursor: crosshair;
+        }
+
+        .selection-overlay.active {
+            display: block;
+        }
+
+        /* Selected component style */
+        [data-component].selected {
+            outline: 2px solid var(--selection-border);
+            outline-offset: 2px;
+        }
+
+        /* Selection Badge */
+        .selection-badge {
+            position: fixed;
+            display: none;
+            align-items: center;
+            gap: 4px;
+            background: var(--selection-bg);
+            color: var(--selection-text);
+            padding: 8px 8px 8px 16px;
+            border-radius: 2px 2px 0 0;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            z-index: 10002;
+        }
+
+        .selection-badge.visible {
+            display: flex;
+        }
+
+        .selection-badge-text {
+            pointer-events: none;
+        }
+
+        .selection-badge-action {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            opacity: 1;
+            transition: opacity 100ms, background 100ms;
+        }
+
+        .selection-badge-action:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .selection-badge-action svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .selection-badge-menu {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 24px;
+            height: 24px;
+            border-radius: 12px;
+            cursor: pointer;
+            opacity: 1;
+            transition: opacity 100ms, background 100ms;
+        }
+
+        .selection-badge-menu:hover {
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .selection-badge-menu svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* === Component Context Menu === */
+        .component-context-menu {
+            position: fixed;
+            display: none;
+            background: #fff;
+            border-radius: 2px;
+            padding: 6px;
+            min-width: 160px;
+            border: 1px solid #999;
+            z-index: 10003;
+        }
+
+        .component-context-menu.visible {
+            display: block;
+        }
+
+        .context-menu-header {
+            display: none;
+            padding: 8px 12px;
+            color: #333;
+            font-size: 12px;
+            opacity: 0.6;
+            border-bottom: 1px solid #ccc;
+            margin-bottom: 4px;
+        }
+
+        .context-menu-header.visible {
+            display: block;
+        }
+
+        .context-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            width: 100%;
+            padding: 10px 12px;
+            border: none;
+            background: transparent;
+            color: #333;
+            font-size: 13px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: background var(--transition-speed);
+            text-align: left;
+        }
+
+        .context-menu-item:hover {
+            background: #f0f0f0;
+        }
+
+        .context-menu-item.disabled {
+            opacity: 0.4;
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .context-menu-item svg {
+            width: 16px;
+            height: 16px;
+            opacity: 0.7;
+        }
+
+        /* === DevTools Container === */
+        .devtools {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: row-reverse;
+            align-items: center;
+        }
+
+        /* === Toolbar === */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #999;
+            border-right: none;
+            border-radius: 4px 0 0 4px;
+            height: var(--toolbar-height);
+            padding: 4px;
+            transition: all var(--transition-speed) ease;
+            color: #333;
+        }
+
+        /* Tools section - hidden in Play mode */
+        .tools-section {
+            display: flex;
+            align-items: center;
+            max-width: 0;
+            opacity: 0;
+            overflow: hidden;
+            transition: all var(--transition-speed) ease;
+        }
+
+        .toolbar[data-expanded="true"] .tools-section {
+            max-width: 600px;
+            opacity: 1;
+            overflow: visible;
+        }
+
+        /* Hide tools in hover preview mode */
+        .toolbar[data-preview="true"] .tools-section {
+            max-width: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        /* === Toolbar Divider === */
+        .toolbar-divider {
+            width: 1px;
+            height: 24px;
+            background: #ccc;
+            margin: 0 4px;
+            flex-shrink: 0;
+        }
+
+        /* Hide divider next to empty tool-icons */
+        .tool-icons:empty + .tool-divider {
+            display: none;
+        }
+
+        /* === Mode Selector === */
+        .mode-selector {
+            display: flex;
+            gap: 0;
+            align-items: center;
+            padding: 2px;
+            background: rgba(0, 0, 0, 0.08);
+            border-radius: 2px;
+        }
+
+        /* When toolbar is collapsed (Play mode) AND hover mode is enabled, hide non-active mode buttons */
+        .toolbar[data-expanded="false"][data-hover-mode="true"] .mode-selector .mode-btn:not([data-active="true"]) {
+            width: 0;
+            min-width: 0;
+            padding: 0;
+            opacity: 0;
+            overflow: hidden;
+            pointer-events: none;
+        }
+
+        /* Animate mode button expansion */
+        .mode-selector .mode-btn {
+            transition: width var(--transition-speed), min-width var(--transition-speed), padding var(--transition-speed), opacity var(--transition-speed), background var(--transition-speed);
+        }
+
+        .mode-btn {
+            width: 36px;
+            min-width: 36px;
+            height: 36px;
+            border-radius: 2px;
+            border: none;
+            background: transparent;
+            color: #333;
+            opacity: 0.6;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+            padding: 6px;
+        }
+
+        .mode-btn:hover {
+            background: #f0f0f0;
+            opacity: 0.9;
+        }
+
+        .mode-btn[data-active="true"] {
+            background: #e0e0e0;
+            opacity: 1;
+        }
+
+        .mode-btn svg {
+            width: 20px;
+            height: 20px;
+        }
+
+        .mode-label {
+            display: none;
+            font-size: 11px;
+            font-weight: 500;
+            letter-spacing: 0.3px;
+        }
+
+        .mode-selector[data-show-labels="true"] .mode-btn {
+            width: auto;
+            min-width: 36px;
+            padding: 6px 10px;
+            gap: 6px;
+        }
+
+        .mode-selector[data-show-labels="true"] .mode-label {
+            display: inline;
+        }
+
+        /* === Tool Icons === */
+        .tool-icons {
+            display: flex;
+            gap: 0;
+            align-items: center;
+        }
+
+        .tool-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 2px;
+            border: none;
+            background: transparent;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+            padding: 8px;
+        }
+
+        .tool-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .tool-btn svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .tool-btn[data-active="true"] {
+            background: #e0e0e0;
+        }
+
+        /* === Tool Panels === */
+        .tool-panels-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 9999;
+        }
+
+        .tool-panels-container .tool-panel {
+            pointer-events: auto;
+        }
+
+        .tool-panel {
+            position: absolute;
+            width: 280px;
+            min-width: 200px;
+            min-height: 120px;
+            background: #fff;
+            border-radius: 2px;
+            border: 1px solid #999;
+            resize: both;
+            overflow: hidden;
+        }
+
+        .tool-panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            border-bottom: 1px solid #ccc;
+            cursor: move;
+            user-select: none;
+        }
+
+        .tool-panel-header:active {
+            cursor: grabbing;
+        }
+
+        .tool-panel.dragging {
+            opacity: 0.9;
+        }
+
+        .tool-panel-title {
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        .tool-panel-close {
+            background: none;
+            border: none;
+            color: #333;
+            opacity: 0.5;
+            cursor: pointer;
+            padding: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-panel-close:hover {
+            opacity: 1;
+        }
+
+        .tool-panel-pin {
+            background: none;
+            border: none;
+            color: #333;
+            opacity: 0.5;
+            cursor: pointer;
+            padding: 4px;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tool-panel-pin:hover {
+            opacity: 1;
+        }
+
+        .tool-panel-pin.visible {
+            display: flex;
+        }
+
+        .tool-panel-pin.pinned {
+            opacity: 1;
+            color: var(--devtools-primary);
+        }
+
+        .tool-panel-content {
+            padding: 16px;
+            color: #333;
+            font-size: 13px;
+            opacity: 0.7;
+            overflow: auto;
+            height: calc(100% - 49px); /* Subtract header height */
+        }
+
+        /* Custom resize handle styling */
+        .tool-panel::after {
+            content: '';
+            position: absolute;
+            right: 4px;
+            bottom: 4px;
+            width: 12px;
+            height: 12px;
+            background: linear-gradient(135deg, transparent 50%, #ccc 50%);
+            pointer-events: none;
+        }
+
+        /* === Global Menu === */
+        .global-menu-container {
+            position: relative;
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 1px solid #999;
+            border-left: none;
+            border-radius: 0 4px 4px 0;
+            height: var(--toolbar-height);
+            padding: 0;
+        }
+
+        .global-menu-btn {
+            width: 20px;
+            height: 100%;
+            border-radius: 0 4px 4px 0;
+            border: none;
+            background: transparent;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all var(--transition-speed) ease;
+            padding: 0;
+        }
+
+        .global-menu-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .global-menu-btn svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .global-menu {
+            position: absolute;
+            bottom: calc(var(--toolbar-height) + 8px);
+            right: 0;
+            background: #fff;
+            border: 1px solid #999;
+            border-radius: 2px;
+            min-width: 240px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all var(--transition-speed) ease;
+            z-index: 10002;
+            overflow: hidden;
+        }
+
+        .global-menu[data-open="true"] {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .menu-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 8px 8px 16px;
+        }
+
+        .menu-header-title {
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.4px;
+            text-transform: uppercase;
+            color: #333;
+        }
+
+        .menu-close-btn {
+            width: 32px;
+            height: 32px;
+            border-radius: 2px;
+            border: none;
+            background: transparent;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-speed);
+        }
+
+        .menu-close-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .menu-close-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .menu-content {
+            padding: 0 16px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            height: 36px;
+            padding: 8px;
+            border: none;
+            background: #f5f5f5;
+            color: #333;
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.25px;
+            cursor: pointer;
+            border-radius: 2px;
+            transition: background var(--transition-speed);
+            text-align: left;
+        }
+
+        .menu-item:hover {
+            background: #e8e8e8;
+        }
+
+        .menu-item svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .menu-item-primary {
+            background: #ddd;
+        }
+
+        .menu-item-primary:hover {
+            background: #ccc;
+        }
+
+        .menu-divider {
+            height: 1px;
+            background: #ccc;
+            margin: 8px 0;
+        }
+
+        .menu-item-spaced {
+            margin-bottom: 16px;
+        }
+
+        /* Menu groups - shared background */
+        .menu-group {
+            background: #f5f5f5;
+            border-radius: 2px;
+            padding: 4px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .menu-group .menu-item {
+            background: transparent;
+            border-radius: 2px;
+        }
+
+        .menu-group .menu-item:hover {
+            background: #e8e8e8;
+        }
+
+        /* Special plugin group - top item green, rest gray */
+        .menu-group-plugin {
+            padding: 0;
+            overflow: hidden;
+            border-radius: 2px;
+            background: #f5f5f5;
+        }
+
+        .menu-group-plugin .menu-item {
+            background: transparent;
+            border-radius: 0;
+            padding: 8px;
+        }
+
+        .menu-group-plugin .menu-item:first-child {
+            background: #e0e0e0;
+            border-radius: 2px 2px 0 0;
+        }
+
+        .menu-group-plugin .menu-item:first-child:hover {
+            background: #d0d0d0;
+        }
+
+        .menu-group-plugin .menu-item:last-child {
+            border-radius: 0 0 2px 2px;
+        }
+
+        .menu-group-plugin .menu-item:not(:first-child):hover {
+            background: #e8e8e8;
+        }
+
+        /* Menu login row - two buttons side by side */
+        .menu-login-row {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 16px;
+        }
+
+        .menu-login-row .menu-item {
+            flex: 1;
+        }
+
+        /* User profile row (logged in state) */
+        .menu-user-profile {
+            display: none;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 8px 8px 12px;
+            background: #e8e8e8;
+            border-radius: 2px;
+            cursor: pointer;
+            transition: filter var(--transition-speed);
+            margin-bottom: 16px;
+        }
+
+        .menu-user-profile:hover {
+            background: #ddd;
+        }
+
+        .menu-user-profile.visible {
+            display: flex;
+        }
+
+        .menu-user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+
+        .menu-user-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .menu-user-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .menu-user-name {
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 20px;
+            color: #333;
+            letter-spacing: 0.25px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .menu-user-tier {
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 12px;
+            font-weight: 400;
+            line-height: 18px;
+            color: #666;
+            letter-spacing: 0.4px;
+        }
+
+        .menu-user-menu-btn {
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1px;
+            color: #333;
+            flex-shrink: 0;
+        }
+
+        .menu-user-menu-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* IntelliJ plugin item */
+        .menu-item-plugin {
+            background: #e0e0e0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .menu-item-plugin:hover {
+            background: #d0d0d0;
+        }
+
+        .menu-item-plugin .plugin-icon {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        .menu-item-plugin .plugin-text {
+            flex: 1;
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            min-width: 0;
+        }
+
+        .menu-item-plugin .plugin-name {
+            white-space: nowrap;
+        }
+
+        .menu-item-plugin .plugin-badge {
+            font-size: 12px;
+            color: #666;
+            letter-spacing: 0.4px;
+            white-space: nowrap;
+        }
+
+        .menu-item-plugin .plugin-external {
+            flex-shrink: 0;
+        }
+
+        .menu-item-plugin .plugin-external svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* === Global Toolbar (vertical) === */
+        .global-toolbar {
+            position: absolute;
+            bottom: calc(var(--toolbar-height) + 8px);
+            right: 0;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            background: #fff;
+            border: 1px solid #999;
+            padding: 6px;
+            border-radius: 2px;
+            opacity: 0;
+            visibility: hidden;
+            transform: translateY(8px);
+            transition: all var(--transition-speed) ease;
+            z-index: 10002;
+        }
+
+        .global-toolbar[data-visible="true"] {
+            opacity: 1;
+            visibility: visible;
+            transform: translateY(0);
+        }
+
+        .global-tool-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 2px;
+            border: none;
+            background: transparent;
+            color: #333;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background var(--transition-speed);
+        }
+
+        .global-tool-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .global-tool-btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* === Edit Context === */
+        [data-file].edit-context {
+            outline: 2px solid var(--edit-context-color);
+            outline-offset: 4px;
+            position: relative;
+        }
+
+        /* Edit Context Badge - positioned relative to edit-context element */
+        [data-file].edit-context > .edit-context-badge {
+            display: flex;
+        }
+
+        .edit-context-badge {
+            position: absolute;
+            top: -5px;
+            right: -6px;
+            transform: translateY(-100%);
+            display: none;
+            align-items: center;
+            gap: 4px;
+            background: var(--edit-context-color);
+            color: var(--edit-context-text);
+            padding: 4px 16px;
+            border-radius: 2px;
+            font-size: 12px;
+            font-family: 'Roboto', system-ui, sans-serif;
+            z-index: 10001;
+            white-space: nowrap;
+            letter-spacing: 0.4px;
+        }
+
+        .edit-context-badge .edit-label {
+            opacity: 0.7;
+        }
+
+        .edit-context-badge .edit-filename {
+            font-weight: 500;
+        }
+
+        .drill-up-icon {
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 100ms;
+            margin-left: 2px;
+        }
+
+        .drill-up-icon:hover {
+            opacity: 0.7 !important;
+        }
+
+        .drill-up-icon.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+
+        /* === Selection Highlight === */
+        .selection-highlight {
+            position: fixed;
+            pointer-events: none;
+            border: 2px solid var(--selection-border);
+            background: var(--selection-color);
+            z-index: 9998;
+            opacity: 0;
+            transition: opacity 100ms ease;
+            border-radius: 4px;
+        }
+
+        .selection-highlight.visible {
+            opacity: 1;
+        }
+
+        .highlight-label {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            background: var(--selection-bg);
+            color: var(--selection-text);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-family: 'Roboto', system-ui, sans-serif;
+            pointer-events: auto;
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            gap: 4px;
+            letter-spacing: 0.4px;
+        }
+
+        .highlight-label:hover {
+            background: #666;
+        }
+
+        .highlight-label.visible {
+            display: flex;
+        }
+
+        .highlight-label .drill-down-icon {
+            width: 14px;
+            height: 14px;
+            opacity: 0.8;
+        }
+
+        .highlight-label-text {
+            opacity: 0.7;
+        }
+
+        .highlight-label-file {
+            font-weight: 500;
+        }
+
+        /* === Feature Walkthrough === */
+        .walkthrough-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: transparent;
+            z-index: 10010;
+            display: none;
+        }
+
+        .walkthrough-overlay.visible {
+            display: block;
+        }
+
+        .walkthrough-spotlight {
+            position: fixed;
+            box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+            border-radius: 8px;
+            z-index: 10011;
+            pointer-events: none;
+            transition: all 300ms ease;
+            display: none;
+        }
+
+        .walkthrough-spotlight.visible {
+            display: block;
+        }
+
+        .walkthrough-popup {
+            position: fixed;
+            background: #fff;
+            border: 1px solid #999;
+            border-radius: 2px;
+            padding: 20px;
+            width: 320px;
+            z-index: 10012;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+        }
+
+        .walkthrough-popup.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .walkthrough-popup::before {
+            content: '';
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            transform: rotate(45deg);
+        }
+
+        .walkthrough-popup[data-arrow="top"]::before {
+            top: -7px;
+            left: 50%;
+            margin-left: -6px;
+            border-top: 1px solid #999;
+            border-left: 1px solid #999;
+        }
+
+        .walkthrough-popup[data-arrow="bottom"]::before {
+            bottom: -7px;
+            left: 50%;
+            margin-left: -6px;
+            border-bottom: 1px solid #999;
+            border-right: 1px solid #999;
+        }
+
+        .walkthrough-popup[data-arrow="left"]::before {
+            left: -7px;
+            top: 50%;
+            margin-top: -6px;
+            border-bottom: 1px solid #999;
+            border-left: 1px solid #999;
+        }
+
+        .walkthrough-popup[data-arrow="right"]::before {
+            right: -7px;
+            top: 50%;
+            margin-top: -6px;
+            border-top: 1px solid #999;
+            border-right: 1px solid #999;
+        }
+
+        .walkthrough-title {
+            color: #333;
+            font-size: 16px;
+            font-weight: 600;
+            margin: 0 0 8px;
+        }
+
+        .walkthrough-description {
+            color: #333;
+            opacity: 0.8;
+            font-size: 14px;
+            line-height: 1.5;
+            margin: 0 0 16px;
+        }
+
+        .walkthrough-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .walkthrough-progress {
+            display: flex;
+            gap: 6px;
+        }
+
+        .walkthrough-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ccc;
+            transition: background var(--transition-speed);
+        }
+
+        .walkthrough-dot.active {
+            background: #666;
+        }
+
+        .walkthrough-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .walkthrough-btn {
+            padding: 8px 16px;
+            border-radius: 2px;
+            border: none;
+            font-family: 'Roboto', system-ui, sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            letter-spacing: 0.25px;
+            cursor: pointer;
+            transition: background var(--transition-speed);
+        }
+
+        .walkthrough-btn-secondary {
+            background: #e8e8e8;
+            color: #333;
+        }
+
+        .walkthrough-btn-secondary:hover {
+            background: #ddd;
+        }
+
+        .walkthrough-btn-primary {
+            background: #666;
+            color: white;
+        }
+
+        .walkthrough-btn-primary:hover {
+            background: #555;
+        }
+
+        .walkthrough-login {
+            width: 100%;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .walkthrough-login svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        .walkthrough-login.hidden {
+            display: none;
+        }
+
+        /* === Status Tooltip === */
+        .status-tooltip {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: #fff;
+            border: 1px solid #999;
+            color: #333;
+            padding: 6px 12px;
+            border-radius: 2px;
+            font-size: 12px;
+            font-family: monospace;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity var(--transition-speed), visibility var(--transition-speed);
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .status-tooltip.visible {
+            opacity: 1;
+            visibility: visible;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Prototype Options Dropdown -->
+    <div class="prototype-options">
+        <button class="prototype-options-btn" title="Prototype Options">
+            <i data-lucide="flask-conical"></i>
+        </button>
+        <div class="prototype-options-menu">
+            <span class="config-label">Prototype options</span>
+            <label class="feature-option">
+                <input type="checkbox" id="hover-mode" checked>
+                <span>Hover mode</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="context-menu" checked>
+                <span>Context menu</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="global-toolbar">
+                <span>Global toolbar</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="pierce-by-default">
+                <span>Pierce by default</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="ephemeral-panels" checked>
+                <span>Ephemeral panels</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="immediate-mode">
+                <span>Immediate</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="mode-labels">
+                <span>Mode labels</span>
+            </label>
+            <label class="feature-option">
+                <input type="checkbox" id="has-subscription">
+                <span>Has subscription</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- App Container -->
+    <main class="app-container" data-file="MainView.java">
+        <form class="address-form" data-component="panel" data-file="AddressForm.java">
+            <h2>Shipping Address</h2>
+            <div class="form-row">
+                <div class="form-field" data-component="text-field">
+                    <label>First Name</label>
+                    <input type="text" placeholder="John">
+                </div>
+                <div class="form-field" data-component="text-field">
+                    <label>Last Name</label>
+                    <input type="text" placeholder="Doe">
+                </div>
+            </div>
+            <div class="form-field" data-component="text-field">
+                <label>Street Address</label>
+                <input type="text" placeholder="123 Main St">
+            </div>
+            <div class="form-row">
+                <div class="form-field" data-component="text-field">
+                    <label>City</label>
+                    <input type="text" placeholder="Springfield">
+                </div>
+                <div class="form-field" data-component="text-field">
+                    <label>ZIP Code</label>
+                    <input type="text" placeholder="12345">
+                </div>
+            </div>
+            <div class="form-actions" data-component="button-bar" data-file="ButtonBar.java">
+                <button type="button" class="btn btn-secondary" data-component="button">Cancel</button>
+                <button type="submit" class="btn btn-primary" data-component="button">Save</button>
+            </div>
+        </form>
+    </main>
+
+    <!-- DevTools -->
+    <div class="devtools" data-active="false">
+        <!-- Global Toolbar (vertical, above activation button) -->
+        <div class="global-toolbar" data-visible="false">
+            <button class="global-tool-btn" title="Info"><i data-lucide="info"></i></button>
+            <button class="global-tool-btn" title="Log"><i data-lucide="terminal"></i></button>
+            <button class="global-tool-btn" title="Feature Flags"><i data-lucide="flag"></i></button>
+            <button class="global-tool-btn" title="Impersonation"><i data-lucide="user"></i></button>
+        </div>
+
+        <!-- Menu button - connected to toolbar on the right side -->
+        <div class="global-menu-container">
+            <button class="global-menu-btn" title="Menu">
+                <i data-lucide="more-vertical"></i>
+            </button>
+        </div>
+
+        <div class="toolbar" data-expanded="false">
+            <div class="tools-section">
+                <div class="tool-icons"></div>
+
+                <div class="toolbar-divider tool-divider"></div>
+            </div>
+
+            <div class="mode-selector">
+                <button class="mode-btn" data-mode="edit" title="Edit Mode">
+                    <i data-lucide="square-pen"></i>
+                    <span class="mode-label">Edit</span>
+                </button>
+                <button class="mode-btn" data-mode="test" title="Test Mode">
+                    <i data-lucide="bug"></i>
+                    <span class="mode-label">Test</span>
+                </button>
+                <button class="mode-btn" data-mode="inspect" title="Inspect Mode">
+                    <i data-lucide="search"></i>
+                    <span class="mode-label">Inspect</span>
+                </button>
+                <button class="mode-btn" data-mode="play" title="Play Mode">
+                    <i data-lucide="play"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Global menu moved outside toolbar so it can appear on right-click -->
+        <div class="global-menu" data-open="false">
+            <div class="menu-header">
+                <span class="menu-header-title">VAADIN DEVTOOLS</span>
+                <button class="menu-close-btn" title="Close"><i data-lucide="x"></i></button>
+            </div>
+            <div class="menu-content">
+                <!-- Login row (shown when logged out) -->
+                <div class="menu-login-row" id="menu-login-row">
+                    <button class="menu-item menu-item-primary" id="menu-login-item"><i data-lucide="log-in"></i> <span>Log In</span></button>
+                    <button class="menu-item" id="menu-signup-item"><i data-lucide="user-plus"></i> <span>Sign Up for Free</span></button>
+                </div>
+                <!-- User profile (shown when logged in) -->
+                <div class="menu-user-profile" id="menu-user-profile">
+                    <div class="menu-user-avatar"><img src="https://i.pravatar.cc/64?img=12" alt=""></div>
+                    <div class="menu-user-info">
+                        <div class="menu-user-name">Marcin Głowacki</div>
+                        <div class="menu-user-tier">Enterprise</div>
+                    </div>
+                    <div class="menu-user-menu-btn"><i data-lucide="more-vertical"></i></div>
+                </div>
+                <!-- Group 1: Vaadin Plugin + Developer Workflow + Feature Flags -->
+                <div class="menu-group menu-group-plugin">
+                    <button class="menu-item menu-item-plugin">
+                        <svg class="plugin-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect width="24" height="24" rx="4" fill="#000"/>
+                            <path d="M3 19.5H12V21H3V19.5Z" fill="#fff"/>
+                            <path d="M5.25 5.25H6.75V6.75H5.25V5.25ZM5.25 8.25H6.75V15H5.25V8.25Z" fill="#fff"/>
+                            <path d="M8.25 8.25H9.75V9.75H8.25V8.25ZM8.25 11.25H9.75V15H8.25V11.25Z" fill="#fff"/>
+                        </svg>
+                        <span class="plugin-text">
+                            <span class="plugin-name">Vaadin Plugin for IntelliJ</span>
+                            <span class="plugin-badge">Recommended</span>
+                        </span>
+                        <span class="plugin-external"><i data-lucide="arrow-up-right"></i></span>
+                    </button>
+                    <button class="menu-item menu-panel-item" data-panel="dev-workflow"><i data-lucide="git-branch"></i> Developer Workflow</button>
+                    <button class="menu-item menu-panel-item" data-panel="flags"><i data-lucide="flag"></i> Feature Flags</button>
+                </div>
+                <!-- Group 2: App Info, App Log, Impersonate -->
+                <div class="menu-group">
+                    <button class="menu-item menu-panel-item" data-panel="app-info"><i data-lucide="info"></i> App Info</button>
+                    <button class="menu-item menu-panel-item" data-panel="log"><i data-lucide="terminal"></i> App Log</button>
+                    <button class="menu-item"><i data-lucide="user-check"></i> Impersonate App User</button>
+                </div>
+                <!-- Group 3: Feedback, Walkthrough, Settings -->
+                <div class="menu-group">
+                    <button class="menu-item"><i data-lucide="message-circle"></i> Submit Feedback</button>
+                    <button class="menu-item" id="menu-walkthrough-item"><i data-lucide="compass"></i> <span>DevTools Walkthrough (0/6)</span></button>
+                    <button class="menu-item"><i data-lucide="settings"></i> DevTools Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Tool Panels Container -->
+    <div class="tool-panels-container"></div>
+
+    <!-- Selection Highlight -->
+    <!-- Selection Overlay - blocks native interactions in selection mode -->
+    <div class="selection-overlay"></div>
+
+    <div class="selection-highlight">
+        <span class="highlight-label">
+            <span class="highlight-label-text">Edit </span><span class="highlight-label-file"></span>
+            <svg class="drill-down-icon" xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 15 15 20 20 15"></path><path d="M4 4h7a4 4 0 0 1 4 4v12"></path></svg>
+        </span>
+    </div>
+
+    <!-- Edit Context Badge -->
+    <div class="edit-context-badge">
+        <span class="edit-label">Editing </span><span class="edit-filename"></span>
+        <svg class="drill-up-icon" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 9 9 4 4 9"></path><path d="M20 20h-7a4 4 0 0 1-4-4V4"></path></svg>
+    </div>
+
+    <!-- Selection Badge -->
+    <div class="selection-badge">
+        <span class="selection-badge-text"></span>
+        <span class="selection-badge-action" title="Vertical sizing"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18"></path><path d="m8 7 4-4 4 4"></path><path d="m8 17 4 4 4-4"></path></svg></span>
+        <span class="selection-badge-action" title="Horizontal sizing"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12h18"></path><path d="m7 8-4 4 4 4"></path><path d="m17 8 4 4-4 4"></path></svg></span>
+        <span class="selection-badge-action" title="Vertical alignment"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"></path><rect x="7" y="9" width="10" height="6" rx="1"></rect></svg></span>
+        <span class="selection-badge-action" title="Horizontal alignment"><svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12h20"></path><rect x="9" y="7" width="6" height="10" rx="1"></rect></svg></span>
+        <span class="selection-badge-menu"><svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg></span>
+    </div>
+
+    <!-- Component Context Menu -->
+    <div class="component-context-menu">
+        <div class="context-menu-header"></div>
+        <button class="context-menu-item" data-action="goto-source">
+            <i data-lucide="file-code"></i> Go to source
+        </button>
+        <button class="context-menu-item" data-action="copy">
+            <i data-lucide="copy"></i> Copy
+        </button>
+        <button class="context-menu-item" data-action="cut">
+            <i data-lucide="scissors"></i> Cut
+        </button>
+        <button class="context-menu-item" data-action="duplicate">
+            <i data-lucide="copy-plus"></i> Duplicate
+        </button>
+    </div>
+
+    <!-- Status Tooltip -->
+    <div class="status-tooltip"></div>
+
+    <!-- Feature Walkthrough -->
+    <div class="walkthrough-overlay"></div>
+    <div class="walkthrough-spotlight"></div>
+    <div class="walkthrough-popup" data-arrow="bottom">
+        <h3 class="walkthrough-title"></h3>
+        <p class="walkthrough-description"></p>
+        <button class="walkthrough-btn walkthrough-btn-primary walkthrough-login hidden"><i data-lucide="user"></i> Log in</button>
+        <div class="walkthrough-footer">
+            <div class="walkthrough-progress"></div>
+            <div class="walkthrough-buttons">
+                <button class="walkthrough-btn walkthrough-btn-secondary walkthrough-skip">Skip</button>
+                <button class="walkthrough-btn walkthrough-btn-primary walkthrough-next">Next</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // === Mode Configuration ===
+        const MODE_CONFIG = {
+            edit: {
+                name: 'Edit',
+                icon: 'square-pen',
+                selectionMode: true,
+                readOnly: false,
+                tools: [
+                    { id: 'outline', name: 'Outline', icon: 'layers' },
+                    { id: 'palette', name: 'Palette', icon: 'palette' },
+                    { id: 'views-routes', name: 'Views & Routes', icon: 'map' },
+                    { id: 'ui-services', name: 'UI Services', icon: 'server' },
+                    { id: 'properties', name: 'Properties', icon: 'sliders-horizontal' },
+                    { id: 'docs', name: 'Docs', icon: 'book-open' },
+                    { id: 'theme-editor', name: 'Theme Editor', icon: 'paintbrush' }
+                ]
+            },
+            test: {
+                name: 'Test',
+                icon: 'bug',
+                selectionMode: false,
+                readOnly: false,
+                tools: [
+                    { id: 'accessibility', name: 'Accessibility Checker', icon: 'accessibility' },
+                    { id: 'ui-test-generator', name: 'UI Test Generator', icon: 'wand-2' },
+                    { id: 'recorder', name: 'Test Recorder', icon: 'video' },
+                    { id: 'i18n', name: 'Internationalization', icon: 'globe' }
+                ]
+            },
+            inspect: {
+                name: 'Inspect',
+                icon: 'search',
+                selectionMode: true,
+                readOnly: true,
+                tools: [
+                    { id: 'outline', name: 'Outline', icon: 'layers' },
+                    { id: 'views-routes', name: 'Views & Routes', icon: 'map' },
+                    { id: 'ui-services', name: 'UI Services', icon: 'server' },
+                    { id: 'properties', name: 'Properties', icon: 'sliders-horizontal' },
+                    { id: 'docs', name: 'Docs', icon: 'book-open' }
+                ]
+            },
+            play: {
+                name: 'Play',
+                icon: 'play',
+                selectionMode: false,
+                readOnly: false,
+                tools: []
+            }
+        };
+
+        // Global tools available in dots-menu (regardless of mode)
+        const GLOBAL_TOOLS = [
+            { id: 'app-info', name: 'Application Info', icon: 'info' },
+            { id: 'dev-workflow', name: 'Dev Workflow', icon: 'git-branch' },
+            { id: 'flags', name: 'Feature Flags', icon: 'flag' },
+            { id: 'log', name: 'Log', icon: 'terminal' }
+        ];
+
+        // === Application State ===
+        const state = {
+            active: false,
+            currentMode: 'play',
+            selectedComponents: [],
+            hoverModeEnabled: true,
+            contextMenuEnabled: true,
+            globalToolbarEnabled: false,
+            pierceByDefault: false,
+            ephemeralPanels: true,
+            immediateMode: false,
+            modeLabelsEnabled: false,
+            hasSubscription: false,
+            globalMenuOpen: false,
+            prototypeOptionsOpen: false,
+            componentContextMenuOpen: false,
+            hoverPreviewActive: false,
+            editContext: null,
+            openPanels: new Set(),  // Set of tool IDs that are open
+            pinnedPanels: new Set(), // Set of tool IDs that are pinned
+            panelPositions: {},     // Store {toolId: {x, y, width, height}}
+            panelZCounter: 1,       // Counter for z-index stacking
+            // Modifier keys are read from event directly (ctrlKey/metaKey, shiftKey)
+            // Shortcut state
+            shortcutArmed: false,       // First CMD/CTRL tap registered
+            shortcutCmdTaps: 0,         // Number of CMD/CTRL taps while shift held
+            // Walkthrough state
+            walkthroughShown: false,    // Has walkthrough been shown this session
+            walkthroughActive: false,   // Is walkthrough currently showing
+            walkthroughStep: 0,         // Current step index
+            walkthroughStepsSeen: 0,    // Number of steps user has seen (1-indexed for display)
+        };
+
+        // Mode order for cycling
+        const MODE_ORDER = ['edit', 'test', 'inspect', 'play'];
+
+        // === Walkthrough Configuration ===
+        const WALKTHROUGH_STEPS = [
+            {
+                id: 'welcome',
+                target: '.devtools',
+                title: 'Welcome to Vaadin DevTools',
+                description: 'A powerful toolkit for inspecting, editing, and testing your Vaadin application. Let\'s take a quick tour!',
+                position: 'left'
+            },
+            {
+                id: 'modes',
+                target: '.mode-selector',
+                title: 'Switch Between Modes',
+                description: 'DevTools has four modes: Edit for making changes, Test for automated testing, Inspect for exploring components, and Play for normal app usage.',
+                position: 'top'
+            },
+            {
+                id: 'tools',
+                target: '.tool-icons',
+                title: 'Mode-Specific Tools',
+                description: 'Each mode has its own set of tools. Click any tool icon to open its panel. Panels can be moved, resized, and stay open as you work.',
+                position: 'top'
+            },
+            {
+                id: 'edit-mode',
+                target: '.mode-btn[data-mode="edit"]',
+                title: 'Edit Mode',
+                description: 'Edit mode lets you modify the UI directly. Select components, change properties, and see updates in real-time. Note: Editing requires a Vaadin subscription.',
+                position: 'top',
+                showLoginButton: true
+            },
+            {
+                id: 'test-mode',
+                target: '.mode-btn[data-mode="test"]',
+                title: 'Test Mode',
+                description: 'Test mode helps you create automated UI tests and check accessibility. Record user interactions and generate test code. Note: Testing features require a Vaadin subscription.',
+                position: 'top',
+                showLoginButton: true
+            },
+            {
+                id: 'inspect-mode',
+                target: '.mode-btn[data-mode="inspect"]',
+                title: 'Inspect Mode',
+                description: 'Inspect mode lets you explore your application\'s component structure and properties in read-only mode. No subscription required - start inspecting right away!',
+                position: 'top',
+                showLoginButton: false
+            }
+        ];
+
+        // === DOM References ===
+        const elements = {};
+
+        function initElements() {
+            elements.devtools = document.querySelector('.devtools');
+            elements.toolbar = document.querySelector('.toolbar');
+            elements.toolsSection = document.querySelector('.tools-section');
+            elements.modeSelector = document.querySelector('.mode-selector');
+            elements.toolIcons = document.querySelector('.tool-icons');
+            elements.globalMenu = document.querySelector('.global-menu');
+            elements.globalMenuBtn = document.querySelector('.global-menu-btn');
+            elements.selectionHighlight = document.querySelector('.selection-highlight');
+            elements.highlightLabel = document.querySelector('.highlight-label');
+            elements.highlightLabelFile = document.querySelector('.highlight-label-file');
+            elements.selectionOverlay = document.querySelector('.selection-overlay');
+            elements.appContainer = document.querySelector('.app-container');
+            elements.globalToolbar = document.querySelector('.global-toolbar');
+            elements.editContextBadge = document.querySelector('.edit-context-badge');
+            elements.editFilename = document.querySelector('.edit-filename');
+            elements.drillUpIcon = document.querySelector('.drill-up-icon');
+            elements.toolPanelsContainer = document.querySelector('.tool-panels-container');
+            elements.selectionBadge = document.querySelector('.selection-badge');
+            elements.selectionBadgeText = document.querySelector('.selection-badge-text');
+            elements.selectionBadgeMenu = document.querySelector('.selection-badge-menu');
+            elements.componentContextMenu = document.querySelector('.component-context-menu');
+            elements.contextMenuHeader = document.querySelector('.context-menu-header');
+            elements.statusTooltip = document.querySelector('.status-tooltip');
+            elements.menuLoginItem = document.getElementById('menu-login-item');
+            elements.menuLoginRow = document.getElementById('menu-login-row');
+            elements.menuUserProfile = document.getElementById('menu-user-profile');
+            elements.walkthroughOverlay = document.querySelector('.walkthrough-overlay');
+            elements.walkthroughSpotlight = document.querySelector('.walkthrough-spotlight');
+            elements.walkthroughPopup = document.querySelector('.walkthrough-popup');
+            elements.walkthroughTitle = document.querySelector('.walkthrough-title');
+            elements.walkthroughDescription = document.querySelector('.walkthrough-description');
+            elements.walkthroughProgress = document.querySelector('.walkthrough-progress');
+            elements.walkthroughSkip = document.querySelector('.walkthrough-skip');
+            elements.walkthroughNext = document.querySelector('.walkthrough-next');
+            elements.walkthroughLogin = document.querySelector('.walkthrough-login');
+            elements.menuWalkthroughItem = document.getElementById('menu-walkthrough-item');
+            elements.prototypeOptionsBtn = document.querySelector('.prototype-options-btn');
+            elements.prototypeOptionsMenu = document.querySelector('.prototype-options-menu');
+        }
+
+        // === Rendering ===
+        function render() {
+            elements.devtools.dataset.active = state.active;
+            elements.devtools.dataset.preview = state.hoverPreviewActive && !state.active;
+            // Toolbar is expanded in non-play modes, or when hover preview is active
+            const showModeSelector = state.currentMode !== 'play' || state.hoverPreviewActive;
+            elements.toolbar.dataset.expanded = showModeSelector;
+            elements.toolbar.dataset.preview = state.hoverPreviewActive && !state.active;
+            elements.toolbar.dataset.hoverMode = state.hoverModeEnabled;
+            elements.modeSelector.dataset.showLabels = state.modeLabelsEnabled;
+            elements.globalMenu.dataset.open = state.globalMenuOpen;
+            elements.globalToolbar.dataset.visible = state.globalToolbarEnabled && state.currentMode !== 'play';
+
+            // Update mode buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.dataset.active = btn.dataset.mode === state.currentMode;
+            });
+
+            // Toggle between login row and user profile
+            if (state.hasSubscription) {
+                elements.menuLoginRow.style.display = 'none';
+                elements.menuUserProfile.classList.add('visible');
+            } else {
+                elements.menuLoginRow.style.display = 'flex';
+                elements.menuUserProfile.classList.remove('visible');
+            }
+
+            // Update walkthrough menu item progress
+            const walkthroughSpan = elements.menuWalkthroughItem.querySelector('span');
+            if (walkthroughSpan) {
+                walkthroughSpan.textContent = `DevTools Walkthrough (${state.walkthroughStepsSeen}/${WALKTHROUGH_STEPS.length})`;
+            }
+        }
+
+        function renderTools(tools) {
+            elements.toolIcons.innerHTML = '';
+
+            tools.forEach(tool => {
+                const btn = document.createElement('button');
+                btn.className = 'tool-btn';
+                btn.dataset.tool = tool.id;
+                btn.title = tool.name;
+                btn.innerHTML = `<i data-lucide="${tool.icon}"></i>`;
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleToolClick(tool);
+                });
+                elements.toolIcons.appendChild(btn);
+            });
+
+            lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
+        }
+
+        // === Activation Functions ===
+        function switchMode(modeId) {
+            state.currentMode = modeId;
+            state.hoverPreviewActive = false;
+
+            const modeConfig = MODE_CONFIG[modeId];
+
+            // Play mode is essentially "off" - no tools, no selection
+            if (modeId === 'play') {
+                state.active = false;
+                elements.selectionOverlay.classList.remove('active');
+                state.editContext = null;
+                updateEditContext();
+                clearSelection();
+                hideHighlight();
+                hideAllPanels();
+                renderTools([]);
+            } else {
+                state.active = true;
+                if (modeConfig.selectionMode) {
+                    elements.selectionOverlay.classList.add('active');
+                    state.editContext = 'MainView.java';
+                    updateEditContext();
+                } else {
+                    elements.selectionOverlay.classList.remove('active');
+                    state.editContext = null;
+                    updateEditContext();
+                    clearSelection();
+                    hideHighlight();
+                }
+
+                renderTools(modeConfig.tools);
+
+                // Show panels that are available in this mode, hide others
+                updateVisiblePanels();
+                updateToolButtonStates();
+
+                // Start walkthrough on first activation
+                if (!state.walkthroughShown) {
+                    // Small delay to let the toolbar animation complete
+                    setTimeout(startWalkthrough, 300);
+                }
+            }
+
+            render();
+        }
+
+        // Legacy function for compatibility
+        function activateDevTools(modeId) {
+            switchMode(modeId);
+        }
+
+        function deactivateDevTools() {
+            // Deactivating now just switches to Play mode
+            switchMode('play');
+        }
+
+        function hideAllPanels() {
+            elements.toolPanelsContainer.querySelectorAll('.tool-panel').forEach(panel => {
+                // Save position before hiding (getBoundingClientRect returns zeros when display:none)
+                const rect = panel.getBoundingClientRect();
+                const toolId = panel.dataset.panel;
+                if (toolId && rect.width > 0) {
+                    state.panelPositions[toolId] = {
+                        x: rect.left,
+                        y: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+                panel.style.display = 'none';
+            });
+        }
+
+        function showAllPanels() {
+            // Re-show panels based on current mode
+            updateVisiblePanels();
+        }
+
+        // === Selection Functions ===
+        function selectComponent(element, addToSelection = false) {
+            if (!addToSelection) {
+                clearSelection();
+            }
+
+            element.classList.add('selected');
+            state.selectedComponents.push(element);
+            updateSelectionBadge();
+
+            const componentType = element.dataset.component;
+            console.log('Selected:', componentType, element);
+        }
+
+        function clearSelection() {
+            state.selectedComponents.forEach(el => el.classList.remove('selected'));
+            state.selectedComponents = [];
+            updateSelectionBadge();
+        }
+
+        function getComponentDisplayName(element) {
+            // If element has data-file, use filename without extension
+            if (element.dataset.file) {
+                return element.dataset.file.replace(/\.\w+$/, '');
+            }
+            // Convert data-component to PascalCase: "text-field" → "TextField"
+            const type = element.dataset.component || 'Component';
+            return type.split('-').map(word =>
+                word.charAt(0).toUpperCase() + word.slice(1)
+            ).join('');
+        }
+
+        function getComponentPath(element) {
+            const path = [];
+            let current = element;
+
+            while (current && elements.appContainer.contains(current)) {
+                if (current.dataset.file || current.dataset.component) {
+                    path.unshift(getComponentDisplayName(current));
+                }
+                current = current.parentElement;
+            }
+
+            return path.join('/');
+        }
+
+        function showStatusTooltip(component) {
+            const path = getComponentPath(component);
+            elements.statusTooltip.textContent = path;
+            elements.statusTooltip.classList.add('visible');
+        }
+
+        function hideStatusTooltip() {
+            elements.statusTooltip.classList.remove('visible');
+        }
+
+        function updateSelectionBadge() {
+            if (state.selectedComponents.length === 0) {
+                elements.selectionBadge.classList.remove('visible');
+                return;
+            }
+            // Show badge for last selected component
+            const lastSelected = state.selectedComponents[state.selectedComponents.length - 1];
+            const rect = lastSelected.getBoundingClientRect();
+
+            // Show count if multiple selected, otherwise show component name
+            const text = state.selectedComponents.length > 1
+                ? `${state.selectedComponents.length} selected`
+                : getComponentDisplayName(lastSelected);
+
+            elements.selectionBadgeText.textContent = text;
+            // Position at top-left, accounting for outline-offset (2px) and outline width (2px)
+            elements.selectionBadge.style.left = (rect.left - 2) + 'px';
+            elements.selectionBadge.style.top = (rect.top - 4) + 'px';
+            elements.selectionBadge.style.transform = 'translateY(-100%)';
+            elements.selectionBadge.classList.add('visible');
+        }
+
+        function highlightComponent(element, drillableFile = null) {
+            const rect = element.getBoundingClientRect();
+            const highlight = elements.selectionHighlight;
+
+            highlight.style.left = rect.left + 'px';
+            highlight.style.top = rect.top + 'px';
+            highlight.style.width = rect.width + 'px';
+            highlight.style.height = rect.height + 'px';
+            highlight.classList.add('visible');
+
+            // Show label if this is a drillable component
+            if (drillableFile && drillableFile !== state.editContext) {
+                elements.highlightLabelFile.textContent = drillableFile;
+                elements.highlightLabel.classList.add('visible');
+            } else {
+                elements.highlightLabel.classList.remove('visible');
+            }
+
+            // Show status tooltip with full path
+            showStatusTooltip(element);
+        }
+
+        function hideHighlight() {
+            elements.selectionHighlight.classList.remove('visible');
+            elements.highlightLabel.classList.remove('visible');
+            hideStatusTooltip();
+        }
+
+        function updateEditContext() {
+            // Remove previous context
+            document.querySelectorAll('.edit-context').forEach(el => {
+                el.classList.remove('edit-context');
+            });
+
+            // Add to current context and move badge into it
+            if (state.editContext) {
+                const contextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                if (contextEl) {
+                    contextEl.classList.add('edit-context');
+
+                    // Move badge into the context element
+                    contextEl.appendChild(elements.editContextBadge);
+                    elements.editFilename.textContent = state.editContext;
+
+                    // Show drill-up icon only if not at root
+                    if (state.editContext !== 'MainView.java') {
+                        elements.drillUpIcon.classList.add('visible');
+                    } else {
+                        elements.drillUpIcon.classList.remove('visible');
+                    }
+                }
+            }
+        }
+
+        // === Event Handlers ===
+        function handleModeSelect(modeId) {
+            switchMode(modeId);
+
+            // Show walkthrough if not logged in and selecting edit or test mode
+            if ((modeId === 'edit' || modeId === 'test') && !state.hasSubscription && state.active) {
+                showWalkthroughStepById(modeId + '-mode');
+            }
+        }
+
+        function handleToolClick(tool) {
+            if (state.openPanels.has(tool.id)) {
+                closePanel(tool.id);
+            } else {
+                openPanel(tool);
+            }
+        }
+
+        function openPanel(tool) {
+            // In ephemeral mode, close all other non-pinned panels first
+            if (state.ephemeralPanels) {
+                state.openPanels.forEach(toolId => {
+                    if (toolId !== tool.id && !state.pinnedPanels.has(toolId)) {
+                        closePanel(toolId);
+                    }
+                });
+            }
+
+            state.openPanels.add(tool.id);
+
+            // Create panel element if it doesn't exist
+            let panelEl = elements.toolPanelsContainer.querySelector(`[data-panel="${tool.id}"]`);
+            if (!panelEl) {
+                panelEl = createPanelElement(tool);
+                elements.toolPanelsContainer.appendChild(panelEl);
+            }
+
+            // In ephemeral mode, position near toolbar only if no saved position
+            if (state.ephemeralPanels && !state.panelPositions[tool.id]) {
+                positionPanelNearToolbar(panelEl, tool.id);
+            }
+
+            // Update content (read-only status may vary by mode)
+            updatePanelContent(panelEl, tool);
+            updateToolButtonStates();
+        }
+
+        function positionPanelNearToolbar(panelEl, toolId) {
+            const toolbarRect = elements.toolbar.getBoundingClientRect();
+            const toolBtn = document.querySelector(`.tool-btn[data-tool="${toolId}"]`);
+
+            if (toolBtn) {
+                const btnRect = toolBtn.getBoundingClientRect();
+                const panelWidth = 280; // Default panel width from CSS
+                // Center panel horizontally over the button
+                const left = btnRect.left + (btnRect.width / 2) - (panelWidth / 2);
+                // Clamp to viewport
+                const clampedLeft = Math.max(8, Math.min(left, window.innerWidth - panelWidth - 8));
+
+                panelEl.style.left = clampedLeft + 'px';
+                panelEl.style.bottom = (window.innerHeight - toolbarRect.top + 8) + 'px';
+                panelEl.style.right = 'auto';
+                panelEl.style.top = 'auto';
+            } else {
+                // Fallback: align to right (for global menu panels)
+                panelEl.style.right = '20px';
+                panelEl.style.bottom = (window.innerHeight - toolbarRect.top + 8) + 'px';
+                panelEl.style.left = 'auto';
+                panelEl.style.top = 'auto';
+            }
+        }
+
+        function closePanel(toolId) {
+            state.openPanels.delete(toolId);
+
+            const panelEl = elements.toolPanelsContainer.querySelector(`[data-panel="${toolId}"]`);
+            if (panelEl) {
+                // Save position BEFORE removing (only if element is visible)
+                const rect = panelEl.getBoundingClientRect();
+                if (rect.width > 0 && rect.height > 0) {
+                    state.panelPositions[toolId] = {
+                        x: rect.left,
+                        y: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+                panelEl.remove();
+            }
+
+            updateToolButtonStates();
+        }
+
+        function createPanelElement(tool) {
+            const panel = document.createElement('div');
+            panel.className = 'tool-panel';
+            panel.dataset.panel = tool.id;
+
+            const isPinned = state.pinnedPanels.has(tool.id);
+            const pinVisibleClass = state.ephemeralPanels ? 'visible' : '';
+            const pinnedClass = isPinned ? 'pinned' : '';
+
+            panel.innerHTML = `
+                <div class="tool-panel-header">
+                    <span class="tool-panel-title">${tool.name}</span>
+                    <div style="display: flex; align-items: center; gap: 4px;">
+                        <button class="tool-panel-pin ${pinVisibleClass} ${pinnedClass}" title="${isPinned ? 'Unpin panel' : 'Pin panel'}">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 17v5"></path><path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"></path></svg>
+                        </button>
+                        <button class="tool-panel-close">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18"></path><path d="m6 6 12 12"></path></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="tool-panel-content"></div>
+            `;
+
+            // Position panel - restore saved position or calculate new one
+            const savedPos = state.panelPositions[tool.id];
+            if (savedPos) {
+                // Use left/top positioning, clear right/bottom
+                panel.style.left = savedPos.x + 'px';
+                panel.style.top = savedPos.y + 'px';
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                if (savedPos.width) panel.style.width = savedPos.width + 'px';
+                if (savedPos.height) panel.style.height = savedPos.height + 'px';
+            } else if (!state.ephemeralPanels) {
+                // Non-ephemeral: cascade from bottom-right
+                const offset = state.openPanels.size * 30;
+                panel.style.right = (20 + offset) + 'px';
+                panel.style.bottom = (80 + offset) + 'px';
+            }
+            // Ephemeral panels without saved position will be positioned in openPanel()
+
+            // Set z-index and bring to front on mousedown
+            panel.style.zIndex = state.panelZCounter++;
+            panel.addEventListener('mousedown', () => {
+                panel.style.zIndex = state.panelZCounter++;
+            });
+
+            // Add pin button handler
+            const pinBtn = panel.querySelector('.tool-panel-pin');
+            pinBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const isPinned = state.pinnedPanels.has(tool.id);
+                if (isPinned) {
+                    state.pinnedPanels.delete(tool.id);
+                    pinBtn.classList.remove('pinned');
+                    pinBtn.title = 'Pin panel';
+                } else {
+                    state.pinnedPanels.add(tool.id);
+                    pinBtn.classList.add('pinned');
+                    pinBtn.title = 'Unpin panel';
+                }
+            });
+
+            // Add close button handler
+            panel.querySelector('.tool-panel-close').addEventListener('click', (e) => {
+                e.stopPropagation();
+                closePanel(tool.id);
+            });
+
+            // Add drag functionality
+            const header = panel.querySelector('.tool-panel-header');
+            let isDragging = false;
+            let dragStartX, dragStartY, panelStartX, panelStartY;
+
+            header.addEventListener('mousedown', (e) => {
+                if (e.target.closest('.tool-panel-close')) return;
+                isDragging = true;
+                panel.classList.add('dragging');
+                dragStartX = e.clientX;
+                dragStartY = e.clientY;
+                const rect = panel.getBoundingClientRect();
+                panelStartX = rect.left;
+                panelStartY = rect.top;
+                // Clear right/bottom positioning, switch to left/top
+                panel.style.right = 'auto';
+                panel.style.bottom = 'auto';
+                panel.style.left = panelStartX + 'px';
+                panel.style.top = panelStartY + 'px';
+                e.preventDefault();
+            });
+
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const dx = e.clientX - dragStartX;
+                const dy = e.clientY - dragStartY;
+                panel.style.left = (panelStartX + dx) + 'px';
+                panel.style.top = (panelStartY + dy) + 'px';
+            });
+
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    panel.classList.remove('dragging');
+                    // Save position
+                    const rect = panel.getBoundingClientRect();
+                    state.panelPositions[tool.id] = {
+                        x: rect.left,
+                        y: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+            });
+
+            // Save size on resize (with isConnected guard to prevent saving zeros)
+            const resizeObserver = new ResizeObserver(() => {
+                if (!isDragging && panel.isConnected) {
+                    const rect = panel.getBoundingClientRect();
+                    state.panelPositions[tool.id] = {
+                        x: rect.left,
+                        y: rect.top,
+                        width: rect.width,
+                        height: rect.height
+                    };
+                }
+            });
+            resizeObserver.observe(panel);
+
+            return panel;
+        }
+
+        function updatePanelContent(panelEl, tool) {
+            const modeConfig = MODE_CONFIG[state.currentMode];
+            const accessText = modeConfig.readOnly ? 'Read-only' : 'Read/Write';
+            panelEl.querySelector('.tool-panel-content').textContent = accessText;
+        }
+
+        function updateToolButtonStates() {
+            document.querySelectorAll('.tool-btn').forEach(btn => {
+                btn.dataset.active = state.openPanels.has(btn.dataset.tool);
+            });
+        }
+
+        function updateVisiblePanels() {
+            const modeConfig = MODE_CONFIG[state.currentMode];
+            const availableToolIds = new Set(modeConfig.tools.map(t => t.id));
+
+            // Show/hide panels based on whether tool is in current mode
+            state.openPanels.forEach(toolId => {
+                const panelEl = elements.toolPanelsContainer.querySelector(`[data-panel="${toolId}"]`);
+                if (panelEl) {
+                    if (availableToolIds.has(toolId)) {
+                        panelEl.style.display = '';
+                        // Update content for current mode
+                        const tool = modeConfig.tools.find(t => t.id === toolId);
+                        if (tool) updatePanelContent(panelEl, tool);
+                    } else {
+                        panelEl.style.display = 'none';
+                    }
+                }
+            });
+        }
+
+        function handleGlobalMenuToggle(e) {
+            e.stopPropagation();
+            state.globalMenuOpen = !state.globalMenuOpen;
+            console.log('Global menu toggled:', state.globalMenuOpen);
+            render();
+        }
+
+        function getComponentContext(component) {
+            // Get the file context that contains this component
+            const fileEl = component.closest('[data-file]');
+            return fileEl ? fileEl.dataset.file : null;
+        }
+
+        function isSelectableInContext(component) {
+            // If component HAS data-file, it's selectable from its PARENT context
+            if (component.dataset.file) {
+                const parentFileEl = component.parentElement?.closest('[data-file]');
+                const parentFile = parentFileEl?.dataset.file;
+                return parentFile === state.editContext;
+            }
+
+            // Otherwise, component is selectable if its containing file matches current context
+            const componentFile = getComponentContext(component);
+            return componentFile === state.editContext;
+        }
+
+        function getComponentAtPoint(x, y) {
+            // Temporarily hide overlay to find element underneath
+            elements.selectionOverlay.style.pointerEvents = 'none';
+            const element = document.elementFromPoint(x, y);
+            elements.selectionOverlay.style.pointerEvents = '';
+            return element;
+        }
+
+        function handleOverlayClick(event) {
+            const ctrlPressed = event.ctrlKey || event.metaKey;
+            const shiftPressed = event.shiftKey;
+            // XOR: pierce mode when ctrl pressed XOR pierce-by-default enabled
+            const pierceMode = ctrlPressed !== state.pierceByDefault;
+
+            const element = getComponentAtPoint(event.clientX, event.clientY);
+            let component = element?.closest('[data-component]');
+            if (!component || !elements.appContainer.contains(component)) {
+                // Clicked outside any component - drill up one level
+                if (state.editContext !== 'MainView.java') {
+                    const currentContextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                    if (currentContextEl) {
+                        const parentFileEl = currentContextEl.parentElement?.closest('[data-file]');
+                        state.editContext = parentFileEl ? parentFileEl.dataset.file : 'MainView.java';
+                    } else {
+                        state.editContext = 'MainView.java';
+                    }
+                    updateEditContext();
+                    clearSelection();
+                }
+                return;
+            }
+
+            // Pierce mode: select any component, changing context if needed
+            if (pierceMode) {
+                const inContext = isSelectableInContext(component);
+                if (!inContext) {
+                    const newContext = getComponentContext(component);
+                    if (newContext) {
+                        state.editContext = newContext;
+                        updateEditContext();
+                        clearSelection(); // Clear selection when context changes
+                    }
+                }
+                selectComponent(component, shiftPressed);
+                return;
+            }
+
+            // Find the nearest selectable component (may be an ancestor)
+            if (!isSelectableInContext(component)) {
+                const parentFile = component.closest('[data-file]');
+                if (parentFile && parentFile.dataset.component && isSelectableInContext(parentFile)) {
+                    component = parentFile;
+                } else {
+                    return; // Nothing selectable
+                }
+            }
+
+            event.preventDefault();
+            event.stopPropagation();
+            selectComponent(component, shiftPressed);
+        }
+
+        function handleOverlayHover(event) {
+            const ctrlPressed = event.ctrlKey || event.metaKey;
+            // XOR: pierce mode when ctrl pressed XOR pierce-by-default enabled
+            const pierceMode = ctrlPressed !== state.pierceByDefault;
+
+            const element = getComponentAtPoint(event.clientX, event.clientY);
+            const component = element?.closest('[data-component]');
+            if (!component || !elements.appContainer.contains(component)) {
+                hideHighlight();
+                return;
+            }
+
+            // Pierce mode: highlight the actual component regardless of context
+            if (pierceMode) {
+                highlightComponent(component, component.dataset.file);
+                return;
+            }
+
+            // Check if component is selectable in current context
+            if (isSelectableInContext(component)) {
+                highlightComponent(component, component.dataset.file);
+            } else {
+                // Not selectable - find nearest selectable ancestor (the parent file container)
+                const parentFile = component.closest('[data-file]');
+                if (parentFile && parentFile.dataset.component && isSelectableInContext(parentFile)) {
+                    highlightComponent(parentFile, parentFile.dataset.file);
+                } else {
+                    hideHighlight();
+                }
+            }
+        }
+
+        function handleOverlayDblClick(event) {
+            const element = getComponentAtPoint(event.clientX, event.clientY);
+            // Find element with data-file that's different from current context
+            const component = element?.closest('[data-file]');
+            if (component && component.dataset.file !== state.editContext) {
+                state.editContext = component.dataset.file;
+                updateEditContext();
+                clearSelection();
+                event.preventDefault();
+                event.stopPropagation();
+            }
+        }
+
+        function handleHoverModeChange(enabled) {
+            state.hoverModeEnabled = enabled;
+            render();
+        }
+
+        // === URL Parameter Handling ===
+        const PROTOTYPE_OPTIONS = [
+            'hover-mode',
+            'context-menu',
+            'global-toolbar',
+            'pierce-by-default',
+            'ephemeral-panels',
+            'immediate-mode',
+            'mode-labels',
+            'has-subscription'
+        ];
+
+        function loadOptionsFromURL() {
+            const params = new URLSearchParams(window.location.search);
+            PROTOTYPE_OPTIONS.forEach(option => {
+                if (params.has(option)) {
+                    const value = params.get(option) === 'true';
+                    const checkbox = document.getElementById(option);
+                    if (checkbox) {
+                        checkbox.checked = value;
+                        // Trigger change event to update state
+                        checkbox.dispatchEvent(new Event('change'));
+                    }
+                }
+            });
+        }
+
+        function saveOptionsToURL() {
+            const params = new URLSearchParams();
+            PROTOTYPE_OPTIONS.forEach(option => {
+                const checkbox = document.getElementById(option);
+                if (checkbox) {
+                    // Only include non-default values to keep URL clean
+                    const isDefault = (option === 'context-menu' || option === 'ephemeral-panels' || option === 'hover-mode')
+                        ? checkbox.checked === true
+                        : checkbox.checked === false;
+                    if (!isDefault) {
+                        params.set(option, checkbox.checked);
+                    }
+                }
+            });
+            const newURL = params.toString()
+                ? `${window.location.pathname}?${params.toString()}`
+                : window.location.pathname;
+            window.history.replaceState({}, '', newURL);
+        }
+
+        // Hover mode for showing mode selector on toolbar hover
+        let hoverTimeout = null;
+
+        function handleToolbarHoverEnter() {
+            if (!state.hoverModeEnabled) return;
+            if (state.active) return;
+
+            clearTimeout(hoverTimeout);
+            state.hoverPreviewActive = true;
+            render();
+        }
+
+        function handleToolbarHoverLeave() {
+            if (!state.hoverModeEnabled) return;
+            if (state.active) return;
+
+            hoverTimeout = setTimeout(() => {
+                if (state.hoverPreviewActive && !state.active) {
+                    state.hoverPreviewActive = false;
+                    render();
+                }
+            }, 200);
+        }
+
+        function showComponentContextMenu(x, y) {
+            const menu = elements.componentContextMenu;
+            const count = state.selectedComponents.length;
+
+            // Update header - show component name for single, count for multiple
+            if (count > 1) {
+                elements.contextMenuHeader.textContent = `${count} selected`;
+            } else if (count === 1) {
+                elements.contextMenuHeader.textContent = getComponentDisplayName(state.selectedComponents[0]);
+            }
+            elements.contextMenuHeader.classList.toggle('visible', count > 0);
+
+            // Enable/disable "Go to source"
+            const gotoItem = menu.querySelector('[data-action="goto-source"]');
+            gotoItem.classList.toggle('disabled', count > 1);
+
+            // Position menu
+            menu.style.left = x + 'px';
+            menu.style.top = y + 'px';
+            menu.classList.add('visible');
+            state.componentContextMenuOpen = true;
+
+            // Initialize icons
+            lucide.createIcons({ attrs: { 'stroke-width': 1.5 }, nodes: [menu] });
+        }
+
+        function hideComponentContextMenu() {
+            elements.componentContextMenu.classList.remove('visible');
+            state.componentContextMenuOpen = false;
+        }
+
+        function handleOverlayContextMenu(event) {
+            event.preventDefault();
+
+            // Only show if there are selected components
+            if (state.selectedComponents.length === 0) return;
+
+            showComponentContextMenu(event.clientX, event.clientY);
+        }
+
+        // === Feature Walkthrough ===
+        function startWalkthrough() {
+            if (state.walkthroughShown) return;
+            state.walkthroughShown = true;
+            state.walkthroughActive = true;
+            state.walkthroughStep = 0;
+            showWalkthroughStep(0);
+        }
+
+        function resumeOrRestartWalkthrough() {
+            state.walkthroughActive = true;
+            // If user has seen all steps, start from beginning
+            // Otherwise, continue from where they left off
+            if (state.walkthroughStepsSeen >= WALKTHROUGH_STEPS.length) {
+                state.walkthroughStep = 0;
+            } else {
+                state.walkthroughStep = state.walkthroughStepsSeen;
+            }
+            showWalkthroughStep(state.walkthroughStep);
+        }
+
+        function showWalkthroughStep(stepIndex) {
+            const step = WALKTHROUGH_STEPS[stepIndex];
+            if (!step) {
+                endWalkthrough();
+                return;
+            }
+
+            const targetEl = document.querySelector(step.target);
+            if (!targetEl) {
+                // Skip to next step if target not found
+                nextWalkthroughStep();
+                return;
+            }
+
+            // Track steps seen (stepIndex is 0-based, stepsSeen is count)
+            const stepNumber = stepIndex + 1;
+            if (stepNumber > state.walkthroughStepsSeen) {
+                state.walkthroughStepsSeen = stepNumber;
+                render(); // Update menu item
+            }
+
+            // Update content
+            elements.walkthroughTitle.textContent = step.title;
+            elements.walkthroughDescription.textContent = step.description;
+
+            // Update progress dots
+            elements.walkthroughProgress.innerHTML = WALKTHROUGH_STEPS.map((_, i) =>
+                `<div class="walkthrough-dot ${i === stepIndex ? 'active' : ''}"></div>`
+            ).join('');
+
+            // Update button text
+            const isLastStep = stepIndex === WALKTHROUGH_STEPS.length - 1;
+            elements.walkthroughNext.textContent = isLastStep ? 'Done' : 'Next';
+
+            // Show/hide login button based on step config and subscription state
+            const showLogin = step.showLoginButton && !state.hasSubscription;
+            elements.walkthroughLogin.classList.toggle('hidden', !showLogin);
+            if (showLogin) {
+                lucide.createIcons({ attrs: { 'stroke-width': 1.5 }, nodes: [elements.walkthroughLogin] });
+            }
+
+            // Position spotlight on target
+            const targetRect = targetEl.getBoundingClientRect();
+            const padding = 8;
+            elements.walkthroughSpotlight.style.left = (targetRect.left - padding) + 'px';
+            elements.walkthroughSpotlight.style.top = (targetRect.top - padding) + 'px';
+            elements.walkthroughSpotlight.style.width = (targetRect.width + padding * 2) + 'px';
+            elements.walkthroughSpotlight.style.height = (targetRect.height + padding * 2) + 'px';
+
+            // Position popup relative to target
+            positionWalkthroughPopup(targetRect, step.position);
+
+            // Show elements
+            elements.walkthroughOverlay.classList.add('visible');
+            elements.walkthroughSpotlight.classList.add('visible');
+            elements.walkthroughPopup.classList.add('visible');
+        }
+
+        function positionWalkthroughPopup(targetRect, position) {
+            const popup = elements.walkthroughPopup;
+            const popupWidth = 320;
+            const popupHeight = popup.offsetHeight || 180;
+            const gap = 16;
+
+            let left, top;
+            let arrow = position;
+
+            switch (position) {
+                case 'top':
+                    left = targetRect.left + (targetRect.width / 2) - (popupWidth / 2);
+                    top = targetRect.top - popupHeight - gap;
+                    arrow = 'bottom';
+                    break;
+                case 'bottom':
+                    left = targetRect.left + (targetRect.width / 2) - (popupWidth / 2);
+                    top = targetRect.bottom + gap;
+                    arrow = 'top';
+                    break;
+                case 'left':
+                    left = targetRect.left - popupWidth - gap;
+                    top = targetRect.top + (targetRect.height / 2) - (popupHeight / 2);
+                    arrow = 'right';
+                    break;
+                case 'right':
+                    left = targetRect.right + gap;
+                    top = targetRect.top + (targetRect.height / 2) - (popupHeight / 2);
+                    arrow = 'left';
+                    break;
+                default:
+                    left = targetRect.left + (targetRect.width / 2) - (popupWidth / 2);
+                    top = targetRect.top - popupHeight - gap;
+                    arrow = 'bottom';
+            }
+
+            // Keep popup within viewport
+            const margin = 16;
+            left = Math.max(margin, Math.min(left, window.innerWidth - popupWidth - margin));
+            top = Math.max(margin, Math.min(top, window.innerHeight - popupHeight - margin));
+
+            popup.style.left = left + 'px';
+            popup.style.top = top + 'px';
+            popup.dataset.arrow = arrow;
+        }
+
+        function nextWalkthroughStep() {
+            state.walkthroughStep++;
+            if (state.walkthroughStep >= WALKTHROUGH_STEPS.length) {
+                endWalkthrough();
+            } else {
+                showWalkthroughStep(state.walkthroughStep);
+            }
+        }
+
+        function endWalkthrough() {
+            state.walkthroughActive = false;
+            elements.walkthroughOverlay.classList.remove('visible');
+            elements.walkthroughSpotlight.classList.remove('visible');
+            elements.walkthroughPopup.classList.remove('visible');
+        }
+
+        function showWalkthroughStepById(stepId) {
+            const stepIndex = WALKTHROUGH_STEPS.findIndex(s => s.id === stepId);
+            if (stepIndex !== -1) {
+                state.walkthroughActive = true;
+                state.walkthroughStep = stepIndex;
+                showWalkthroughStep(stepIndex);
+            }
+        }
+
+        // === Keyboard Shortcut ===
+        function resetShortcut() {
+            state.shortcutArmed = false;
+            state.shortcutCmdTaps = 0;
+        }
+
+        function armShortcut() {
+            state.shortcutArmed = true;
+        }
+
+        function cycleMode() {
+            const currentIndex = MODE_ORDER.indexOf(state.currentMode);
+            const nextIndex = (currentIndex + 1) % MODE_ORDER.length;
+            switchMode(MODE_ORDER[nextIndex]);
+        }
+
+        function handleKeyDown(e) {
+            // ESC: deselect or exit edit context
+            if (e.key === 'Escape' && state.active) {
+                if (state.selectedComponents.length > 0) {
+                    // Deselect all
+                    clearSelection();
+                } else if (state.editContext && state.editContext !== 'MainView.java') {
+                    // Exit to parent context
+                    const currentContextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                    if (currentContextEl) {
+                        const parentFileEl = currentContextEl.parentElement?.closest('[data-file]');
+                        state.editContext = parentFileEl ? parentFileEl.dataset.file : 'MainView.java';
+                    } else {
+                        state.editContext = 'MainView.java';
+                    }
+                    updateEditContext();
+                }
+                e.preventDefault();
+                return;
+            }
+
+            // Check for CMD (Mac) or CTRL (Windows/Linux)
+            const isCmdOrCtrl = e.key === 'Meta' || e.key === 'Control';
+            const isShift = e.key === 'Shift';
+
+            // If shift is held and we're in the shortcut sequence
+            if (e.shiftKey && state.shortcutCmdTaps > 0) {
+                // Any key other than CMD/CTRL or Shift cancels the shortcut
+                if (!isCmdOrCtrl && !isShift) {
+                    resetShortcut();
+                    return;
+                }
+            }
+
+            if (isCmdOrCtrl && e.shiftKey) {
+                state.shortcutCmdTaps++;
+
+                if (state.shortcutCmdTaps === 1) {
+                    // First tap - arm the shortcut
+                    armShortcut();
+                } else if (state.shortcutCmdTaps >= 2) {
+                    // Second+ tap - cycle through modes
+                    cycleMode();
+                }
+
+                e.preventDefault();
+            }
+        }
+
+        function handleKeyUp(e) {
+            // Reset shortcut when Shift is released
+            if (e.key === 'Shift') {
+                resetShortcut();
+            }
+        }
+
+        // === Initialize ===
+        function init() {
+            initElements();
+
+            // Mode buttons
+            document.querySelectorAll('.mode-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    handleModeSelect(btn.dataset.mode);
+                });
+            });
+
+            // Toolbar hover for mode selector preview
+            elements.toolbar.addEventListener('mouseenter', handleToolbarHoverEnter);
+            elements.toolbar.addEventListener('mouseleave', handleToolbarHoverLeave);
+
+            // Right-click on toolbar to show global menu
+            elements.toolbar.addEventListener('contextmenu', (e) => {
+                if (!state.contextMenuEnabled) return;
+                e.preventDefault();
+                state.globalMenuOpen = true;
+                render();
+            });
+
+            // Global menu
+            console.log('Global menu btn found:', elements.globalMenuBtn);
+            elements.globalMenuBtn.addEventListener('click', handleGlobalMenuToggle);
+
+            // Menu close button
+            const menuCloseBtn = document.querySelector('.menu-close-btn');
+            if (menuCloseBtn) {
+                menuCloseBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    state.globalMenuOpen = false;
+                    render();
+                });
+            }
+
+            // Global menu items
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    // Handle panel items - open corresponding panel
+                    if (item.classList.contains('menu-panel-item')) {
+                        const panelId = item.dataset.panel;
+                        const globalTool = GLOBAL_TOOLS.find(t => t.id === panelId);
+                        if (globalTool) {
+                            if (state.openPanels.has(panelId)) {
+                                closePanel(panelId);
+                            } else {
+                                openPanel(globalTool);
+                            }
+                        }
+                        state.globalMenuOpen = false;
+                        render();
+                        return;
+                    }
+                    // Handle login/signup items specially
+                    if ((item.id === 'menu-login-item' || item.id === 'menu-signup-item') && !state.hasSubscription) {
+                        state.hasSubscription = true;
+                        document.getElementById('has-subscription').checked = true;
+                    }
+                    // Handle walkthrough item
+                    if (item.id === 'menu-walkthrough-item') {
+                        resumeOrRestartWalkthrough();
+                    }
+                    console.log('Menu item clicked:', item.textContent.trim());
+                    state.globalMenuOpen = false;
+                    render();
+                });
+            });
+
+            // Click outside to close menus
+            document.addEventListener('click', (e) => {
+                // Close prototype options menu
+                if (state.prototypeOptionsOpen &&
+                    !e.target.closest('.prototype-options')) {
+                    state.prototypeOptionsOpen = false;
+                    elements.prototypeOptionsMenu.classList.remove('visible');
+                }
+
+                if (state.globalMenuOpen &&
+                    !e.target.closest('.global-menu') &&
+                    !e.target.closest('.global-menu-btn')) {
+                    state.globalMenuOpen = false;
+                    render();
+                }
+
+                // Close component context menu when clicking outside
+                if (state.componentContextMenuOpen && !e.target.closest('.component-context-menu')) {
+                    hideComponentContextMenu();
+                }
+
+                // Close ephemeral (non-pinned) panels when clicking outside
+                if (state.ephemeralPanels && state.openPanels.size > 0) {
+                    const clickedPanel = e.target.closest('.tool-panel');
+                    const clickedToolBtn = e.target.closest('.tool-btn');
+                    if (!clickedPanel && !clickedToolBtn) {
+                        state.openPanels.forEach(toolId => {
+                            if (!state.pinnedPanels.has(toolId)) {
+                                closePanel(toolId);
+                            }
+                        });
+                    }
+                }
+            });
+
+            // Selection overlay events (blocks native interactions, uses elementFromPoint)
+            elements.selectionOverlay.addEventListener('click', handleOverlayClick);
+            elements.selectionOverlay.addEventListener('mousemove', handleOverlayHover);
+            elements.selectionOverlay.addEventListener('dblclick', handleOverlayDblClick);
+            elements.selectionOverlay.addEventListener('mouseleave', hideHighlight);
+            elements.selectionOverlay.addEventListener('contextmenu', handleOverlayContextMenu);
+
+            // Highlight label - keep highlight visible when hovering, drill on click
+            elements.highlightLabel.addEventListener('mouseenter', () => {
+                // Prevent hideHighlight from firing when mouse moves to label
+                elements.selectionHighlight.classList.add('visible');
+                elements.highlightLabel.classList.add('visible');
+            });
+            elements.highlightLabel.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const file = elements.highlightLabelFile.textContent;
+                if (file && file !== state.editContext) {
+                    state.editContext = file;
+                    updateEditContext();
+                    clearSelection();
+                    hideHighlight();
+                }
+            });
+
+            // Modifier keys (CMD/CTRL, SHIFT) are read from event properties directly
+
+            // Keyboard shortcuts
+            document.addEventListener('keydown', handleKeyDown);
+            document.addEventListener('keyup', handleKeyUp);
+
+            // Prototype options dropdown
+            elements.prototypeOptionsBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                state.prototypeOptionsOpen = !state.prototypeOptionsOpen;
+                elements.prototypeOptionsMenu.classList.toggle('visible', state.prototypeOptionsOpen);
+            });
+
+            // Configuration checkboxes
+            document.getElementById('hover-mode').addEventListener('change', (e) => {
+                handleHoverModeChange(e.target.checked);
+                saveOptionsToURL();
+            });
+            document.getElementById('context-menu').addEventListener('change', (e) => {
+                state.contextMenuEnabled = e.target.checked;
+                saveOptionsToURL();
+            });
+            document.getElementById('global-toolbar').addEventListener('change', (e) => {
+                state.globalToolbarEnabled = e.target.checked;
+                render();
+                saveOptionsToURL();
+            });
+            document.getElementById('pierce-by-default').addEventListener('change', (e) => {
+                state.pierceByDefault = e.target.checked;
+                saveOptionsToURL();
+            });
+            document.getElementById('ephemeral-panels').addEventListener('change', (e) => {
+                state.ephemeralPanels = e.target.checked;
+                // Update pin button visibility on all open panels
+                document.querySelectorAll('.tool-panel-pin').forEach(btn => {
+                    btn.classList.toggle('visible', e.target.checked);
+                });
+                saveOptionsToURL();
+            });
+            document.getElementById('immediate-mode').addEventListener('change', (e) => {
+                state.immediateMode = e.target.checked;
+                document.documentElement.classList.toggle('immediate-mode', e.target.checked);
+                saveOptionsToURL();
+            });
+            document.getElementById('mode-labels').addEventListener('change', (e) => {
+                state.modeLabelsEnabled = e.target.checked;
+                render();
+                saveOptionsToURL();
+            });
+            document.getElementById('has-subscription').addEventListener('change', (e) => {
+                state.hasSubscription = e.target.checked;
+                render();
+                saveOptionsToURL();
+            });
+            // Global toolbar buttons (stub handlers)
+            document.querySelectorAll('.global-tool-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    console.log('Global tool clicked:', btn.title);
+                });
+            });
+
+            // Prevent form submission
+            document.querySelector('.address-form').addEventListener('submit', (e) => {
+                e.preventDefault();
+                console.log('Form submitted (prevented)');
+            });
+
+            // Drill-up icon click - go back to parent context
+            elements.drillUpIcon.addEventListener('click', (e) => {
+                e.stopPropagation();
+                // Find the current context element and get its parent file context
+                const currentContextEl = document.querySelector(`[data-file="${state.editContext}"]`);
+                if (currentContextEl) {
+                    const parentFileEl = currentContextEl.parentElement?.closest('[data-file]');
+                    state.editContext = parentFileEl ? parentFileEl.dataset.file : 'MainView.java';
+                } else {
+                    state.editContext = 'MainView.java';
+                }
+                updateEditContext();
+                clearSelection();
+            });
+
+            // Component context menu item clicks
+            elements.componentContextMenu.querySelectorAll('.context-menu-item').forEach(item => {
+                item.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const action = item.dataset.action;
+                    console.log('Context menu action:', action, state.selectedComponents);
+                    hideComponentContextMenu();
+                });
+            });
+
+            // Selection badge action icons - do nothing on click
+            document.querySelectorAll('.selection-badge-action').forEach(action => {
+                action.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    console.log('Badge action clicked:', action.title);
+                });
+            });
+
+            // Selection badge menu icon click - opens context menu
+            elements.selectionBadgeMenu.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (state.selectedComponents.length === 0) return;
+                const rect = elements.selectionBadgeMenu.getBoundingClientRect();
+                showComponentContextMenu(rect.left, rect.bottom + 4);
+            });
+
+            // Walkthrough buttons
+            elements.walkthroughSkip.addEventListener('click', endWalkthrough);
+            elements.walkthroughNext.addEventListener('click', nextWalkthroughStep);
+            elements.walkthroughOverlay.addEventListener('click', endWalkthrough);
+            elements.walkthroughLogin.addEventListener('click', () => {
+                state.hasSubscription = true;
+                document.getElementById('has-subscription').checked = true;
+                render();
+                endWalkthrough();
+            });
+
+            // Initialize Lucide icons
+            lucide.createIcons({ attrs: { 'stroke-width': 1.5 } });
+
+            // Load options from URL (must be after event listeners are set up)
+            loadOptionsFromURL();
+
+            // Initial render
+            render();
+        }
+
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
